@@ -79,7 +79,8 @@ class mainTarget(mainConfig):
             self.coordinate = self._get_coordinate_radec(ra = target_ra, dec = target_dec)
             self.target_astroplan = self._get_target(self.coordinate, target_name)
             altaz = self.altaz()
-            self.ra = self.coordinate.ra.hour
+            #self.ra = self.coordinate.ra.hour
+            self.ra = self.coordinate.ra.deg
             self.dec = self.coordinate.dec.deg
             self.alt = altaz.alt.value
             self.az = altaz.az.value
@@ -88,7 +89,7 @@ class mainTarget(mainConfig):
         #self.status = self.get_status()
         
     def __repr__(self):
-        return f'Target[name={self.name}, ra[Hour]={round(self.ra,4)}, dec[Deg]={round(self.dec,4)}'
+        return f'Target[name={self.name}, ra[deg]={round(self.ra,4)}, dec[deg]={round(self.dec,4)}'
 
     def get_status(self):
         """
@@ -391,7 +392,7 @@ class mainTarget(mainConfig):
                               ra,
                               dec,
                               frame : str = 'icrs') -> SkyCoord:
-        return SkyCoord(ra = ra, dec = dec, frame = frame, unit = (u.hourangle, u.deg))
+        return SkyCoord(ra = ra, dec = dec, frame = frame, unit = (u.deg, u.deg))
 
     def _get_coordinate_altaz(self,
                               alt,

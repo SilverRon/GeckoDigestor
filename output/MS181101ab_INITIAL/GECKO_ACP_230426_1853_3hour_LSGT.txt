@@ -1,0 +1,147 @@
+; Prepare for the observation (LSGT)
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:09:47	-23:23:01
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:07:33	-24:00:30
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:57:27	-19:41:28
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:07:05	-23:40:37
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:08:04	-23:47:48
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:51:18	-14:34:24
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:06:56	-23:55:01
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:48:59	-14:23:57
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:07:37	-23:34:44
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:52:25	-15:31:01
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:05:04	-22:23:02
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:50:11	-13:29:23
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:16:23	-26:33:41
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:50:37	-14:28:57
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:06:39	-22:27:20
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:54:17	-14:08:44
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	13:10:45	-23:51:56
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS181101ab	12:55:19	-14:56:59
+

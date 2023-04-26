@@ -64,10 +64,11 @@ class mainObserver(mainConfig):
     
     def __init__(self,
                  name_telescope : int,
+                 name_project : str = 'ToO',
                  **kwargs
                  ):
         
-        super().__init__(name_telescope = name_telescope)
+        super().__init__(name_telescope = name_telescope, project = name_project)
         self._name_telescope = name_telescope
         self._latitude = float(self.config['OBSERVER_LATITUDE'])*u.deg
         self._longitude = float(self.config['OBSERVER_LONGITUDE'])*u.deg
@@ -446,3 +447,5 @@ class mainObserver(mainConfig):
         if not isinstance(utctimes, Time):
             utctimes = Time(utctimes)
         return self._observer.moon_illumination(utctimes)
+
+# %%
