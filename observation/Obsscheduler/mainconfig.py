@@ -7,10 +7,12 @@ import json
 #%%
 class mainConfig:
     def __init__(self,
+                 project: str = 'ToO',
                  name_telescope : str = 'KCT',
                  **kwargs):
         self.name_telescope = name_telescope
-        configfilekey = os.path.dirname(__file__)+f'/config/{self.name_telescope}'+'/*.config',
+        self._project = project
+        configfilekey = os.path.dirname(__file__)+f'/config/{project}/{self.name_telescope}'+'/*.config',
         self._configfiles = glob.glob(configfilekey[0])
         if len(self._configfiles) == 0:
             print('No configuration file is found.\nTo make default configuration files, run tcspy.configuration.make_config')
@@ -28,7 +30,7 @@ class mainConfig:
 
     def _initialize_config(self,
                            savedir = f'{os.path.dirname(__file__)}'):
-        savepath = savedir + f'/config/{self.name_telescope}/'
+        savepath = savedir + f'/config/{self._project}/{self.name_telescope}/'
         if not os.path.exists(savepath):
             os.makedirs(savepath, exist_ok= True)
         def make_configfile(dict_params, 
@@ -88,18 +90,16 @@ class mainConfig:
                                 SCHEDULER_DEFAULTPRIOR = 1
                                 )
 
-        #make_configfile(observer_params, filename = f'Observer_{self.name_telescope}.config')
-        #make_configfile(target_params, filename = f'Target_{self.name_telescope}.config')
-        #make_configfile(overhead_params, filename = f'Overhead_{self.name_telescope}.config')
+        make_configfile(observer_params, filename = f'Observer_{self.name_telescope}.config')
+        make_configfile(target_params, filename = f'Target_{self.name_telescope}.config')
+        make_configfile(overhead_params, filename = f'Overhead_{self.name_telescope}.config')
         make_configfile(scheduler_params, filename = f'Scheduler_{self.name_telescope}.config')
 
 #%% Temporary running 
 if __name__ == '__main__':
     telescope_list = ['KCT', 'RASA36', 'LSGT', 'CBNUO']
     for telescope in telescope_list:
-        telescope = 'KCT'
-        A = mainConfig(name_telescope = telescope)
+        telescope = 'SAO'
+        A = mainConfig(name_telescope = telescope, project= 'ToO')
         A._initialize_config()
-
-#%%
 # %%
