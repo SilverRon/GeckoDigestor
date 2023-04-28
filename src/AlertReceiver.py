@@ -46,16 +46,16 @@ def AlertReceiver(record):
     # if record['superevent_id'][0] != 'S':
     #    return
     if record['superevent_id'][0] != 'M':
-        return
+        return record, None
 
     if record['alert_type'] == 'RETRACTION':
         print(record['superevent_id'], 'was retracted')
-        return
+        return record, None
 
     # Respond only to 'CBC' events. Change 'CBC' to 'Burst' to respond to
     # only unmodeled burst events.
-    if record['event']['group'] != 'CBC':
-        return
+    # if record['event']['group'] != 'CBC':
+    #     return
     print(f"="*60)
     print(f"EVENT: {record['superevent_id']}-{record['alert_type']}")
     print(f"="*60)
@@ -95,22 +95,22 @@ def AlertReceiver(record):
 
     print(f"-"*60)
     # Print remaining fields
-    print('Record:')
-    pprint(record)
+    # print('Record:')
+    # pprint(record)
 
 
-    # 새로 생성할 디렉토리 이름
-    new_directory = f"../output/{record['superevent_id']}_{record['alert_type']}"
-    # 디렉토리가 존재하지 않으면 생성
-    if not os.path.exists(new_directory):
-        os.makedirs(new_directory)
-    # 딕셔너리를 JSON 문자열로 변환
-    record_str = json.dumps(record)
-    # JSON 문자열을 파일로 저장
-    with open(f'{new_directory}/record.json', 'w') as file:
-        file.write(record_str)
+    # # 새로 생성할 디렉토리 이름
+    # new_directory = f"../output/{record['superevent_id']}_{record['alert_type']}"
+    # # 디렉토리가 존재하지 않으면 생성
+    # if not os.path.exists(new_directory):
+    #     os.makedirs(new_directory)
+    # # 딕셔너리를 JSON 문자열로 변환
+    # record_str = json.dumps(record)
+    # # JSON 문자열을 파일로 저장
+    # with open(f'{new_directory}/record.json', 'w') as file:
+    #     file.write(record_str)
 
-    write_skymap_to_fits(skymap, path_output=f"{new_directory}/skymap.fits")
+    # write_skymap_to_fits(skymap, path_output=f"{new_directory}/skymap.fits")
 
 
     return record, skymap

@@ -2,7 +2,7 @@
 #	Observatory = SAO
 #	-18 deg sunset = 20:53
 #	-18 deg sunrise = 04:06
-#	Moon ra, dec = 7:39:41.49   26:42:36.66
+#	Moon ra, dec = 7:39:41.47   26:42:36.7
 #	Moon phase = 0.38
 #	Moon seperation limit = 40
 #	Altitude limit = 30
