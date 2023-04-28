@@ -134,3 +134,6 @@ config/config.py
 # Data
 data/GLADE+.fits
 data/GLADE+_230419.fits
+
+# Output
+output/MS23**

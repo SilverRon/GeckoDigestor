@@ -36,7 +36,6 @@ class ObsScheduler(mainConfig):
     (23.04.26) Change the output format of write_txt function
     (23.04.26) Change the structure of the configuration directory depending on the project (ToO, IMSNG)
     (23.04.27) No error anymore when no observable target exists
-    (23.04.27 11:10) #Minor change // make_ACPscript_LSGT, fix for the case no target exist in split_table
     
     Parameters
     ==========
@@ -294,7 +293,7 @@ class ObsScheduler(mainConfig):
         self.observer_astroplan = self.observer_tcspy._observer
         
         self.ast_allnight = self._get_allnight(horizon = -18)
-        self.civil_allnight = self._get_allnight(horizon = -10)
+        self.civil_allnight = self._get_allnight(horizon = 0)
         self.midnight = self._get_midnight()
         self.moon_radec = self._get_moon_radec(self.midnight)
         if self._entire_night:
@@ -322,6 +321,8 @@ class ObsScheduler(mainConfig):
         target_df['FixedTarget'] = fixedtarget
         target_df['mainTarget'] = maintarget
         target_df['id'] = ids
+
+        
         self.target_observable = target_df
     
     def scheduler(self):
@@ -524,13 +525,13 @@ class ObsScheduler(mainConfig):
         data_table = Table().from_pandas(data_table)
         risetime, transittime, settime, maxalt, maxaz = self._get_rts(obs_tbl = data_table, mode = 'tm')        
         target_coords = self._match_coord_format(data_table['ra'].tolist(), data_table['dec'].tolist())
-        #all_target_altaz = self.observer_astroplan.altaz(self.midnight, target = target_coords)
-        #moon_altaz = self.observer_astroplan.altaz(self.midnight, target = self.moon_radec)
-        #maxalt = np.array(maxalt).round(1)
-        #moonsep = np.array(SkyCoord.separation(all_target_altaz, moon_altaz).value).astype(int)
+        all_target_altaz = self.observer_astroplan.altaz(self.midnight, target = target_coords)
+        moon_altaz = self.observer_astroplan.altaz(self.midnight, target = self.moon_radec)
+        maxalt = np.array(maxalt).round(1)
+        moonsep = np.array(SkyCoord.separation(all_target_altaz, moon_altaz).value).astype(int)
         data_table['maxalt'] = maxalt
         data_table['transit'] = transittime
-        #data_table['moonsep'] = moonsep
+        data_table['moonsep'] = moonsep
         filename = f'{savepath}{filename_prefix}{self._ut_to_lt(self.midnight.datetime).strftime("%y%m%d")}_{self.name_telescope}.log'
         
         #filename = f'{savepath}{filename_prefix}_{self._ut_to_lt(self.midnight.datetime).strftime("%y%m%d")}_{self.name_telescope}.dat'
@@ -857,59 +858,57 @@ class ObsScheduler(mainConfig):
         
         time_start = target_table[0]['obs_start']
         time_tot = (target_table[-1]['obs_end'] - target_table[0]['obs_start']).value * 24
-        time_grid = Time(time_start) + period_script * np.arange(time_tot//period_script + 1) * u.hour
+        time_grid = Time(time_start) + period_script * np.arange(time_tot//period_script) * u.hour
         
         for timecut in time_grid:
             if timecut != time_grid[-1]:
                 idx = (timecut <= target_table['obs_start']) & ( target_table['obs_start'] < timecut + period_script * u.hour)
                 split_table = target_table[idx]
-                if len(split_table) > 0:
-                    filename = f'{savepath}{filename_prefix}ACP_{(self._ut_to_lt(split_table[0]["obs_start"].datetime)).strftime("%y%m%d_%H%M")}_{period_script}Hour_{self.name_telescope}.txt'
-                    with open(filename, 'w') as f:
-                        f.write('; Prepare for the observation (LSGT)\n')
-                        f.write('\n; Targeting\n')
-                        for target in split_table:
-                            name = target['obj']
-                            ra = target['ra_hms']
-                            dec = target['dec_dms']
-                            exptime = target['exptime']
-                            filter_ = target['filter']
-                            count = target['count']
-                            binning = target['binning']
-                            f.write('#skippreviews \n')
-                            f.write('#filteroffsets\n')
-                            f.write('#count {}\n'.format(count))
-                            f.write('#interval {}\n'.format(exptime))
-                            f.write('#binning {}\n'.format(binning))
-                            f.write('#filter {}\n'.format(filter_))
-                            f.write('{}\t{}\t{}\n'.format(name,ra,dec))
-                            f.write('\n')
+                filename = f'{savepath}{filename_prefix}ACP_{(self._ut_to_lt(split_table[0]["obs_start"].datetime)).strftime("%y%m%d_%H%M")}_{period_script}hour_{self.name_telescope}.txt'
+                with open(filename, 'w') as f:
+                    f.write('; Prepare for the observation (LSGT)\n')
+                    f.write('\n; Targeting\n')
+                    for target in split_table:
+                        name = target['obj']
+                        ra = target['ra_hms']
+                        dec = target['dec_dms']
+                        exptime = target['exptime']
+                        filter_ = target['filter']
+                        count = target['count']
+                        binning = target['binning']
+                        f.write('#skippreviews \n')
+                        f.write('#filteroffsets\n')
+                        f.write('#count {}\n'.format(count))
+                        f.write('#interval {}\n'.format(exptime))
+                        f.write('#binning {}\n'.format(binning))
+                        f.write('#filter {}\n'.format(filter_))
+                        f.write('{}\t{}\t{}\n'.format(name,ra,dec))
+                        f.write('\n')
             else:
                 idx = (timecut < target_table['obs_start'])
                 split_table = target_table[idx]
-                if len(split_table) > 0:
-                    filename = f'{savepath}{filename_prefix}ACP_{(self._ut_to_lt(split_table[0]["obs_start"].datetime)).strftime("%y%m%d_%H%M")}_{period_script}Hour_{self.name_telescope}.txt'
-                    with open(filename, 'w') as f:
-                        f.write('; Prepare for the observation\n')
-                        f.write('\n; Targeting\n')
-                        for target in split_table:
-                            name = target['obj']
-                            ra = target['ra_hms']
-                            dec = target['dec_dms']
-                            exptime = target['exptime']
-                            filter_ = target['filter']
-                            count = target['count']
-                            binning = target['binning']
-                            f.write('#skippreviews \n')
-                            f.write('#filteroffsets\n')
-                            f.write('#count {}\n'.format(count))
-                            f.write('#interval {}\n'.format(exptime))
-                            f.write('#binning {}\n'.format(binning))
-                            f.write('#filter {}\n'.format(filter_))
-                            f.write('{}\t{}\t{}\n'.format(name,ra,dec))
-                            f.write('\n')
-                        f.write('#QUITAT {}\n'.format(time_astronomical_dawn_form))
-            print(f'[write_ACPscript_LSGT] SAVED! filename : {filename}')
+                filename = f'{savepath}{filename_prefix}ACP_{(self._ut_to_lt(split_table[0]["obs_start"].datetime)).strftime("%y%m%d_%H%M")}_{period_script}Hour_{self.name_telescope}.txt'
+                with open(filename, 'w') as f:
+                    f.write('; Prepare for the observation\n')
+                    f.write('\n; Targeting\n')
+                    for target in split_table:
+                        name = target['obj']
+                        ra = target['ra_hms']
+                        dec = target['dec_dms']
+                        exptime = target['exptime']
+                        filter_ = target['filter']
+                        count = target['count']
+                        binning = target['binning']
+                        f.write('#skippreviews \n')
+                        f.write('#filteroffsets\n')
+                        f.write('#count {}\n'.format(count))
+                        f.write('#interval {}\n'.format(exptime))
+                        f.write('#binning {}\n'.format(binning))
+                        f.write('#filter {}\n'.format(filter_))
+                        f.write('{}\t{}\t{}\n'.format(name,ra,dec))
+                        f.write('\n')
+                    f.write('#QUITAT {}\n'.format(time_astronomical_dawn_form))
+        print(f'[write_ACPscript_LSGT] SAVED! filename : {filename}')
 
     def write_NINAscript(self,
                          filename_prefix : str = '',
@@ -1109,14 +1108,14 @@ class ObsScheduler(mainConfig):
         maxazlist = []
         all_target = obs_tbl['mainTarget']
         for target in all_target:
-            transittime = target.meridiantime(self.midnight, n_grid_points = 40)
+            transittime = target.meridiantime(self.midnight, n_grid_points = 20)
             if 't' in mode:
                 transittimelist.append(transittime.datetime)
             if 'r' in mode:
-                risetime = target.risetime(transittime, n_grid_points = 40, mode = 'previous')
+                risetime = target.risetime(transittime, n_grid_points = 20, mode = 'previous')
                 risetimelist.append(risetime.datetime)
             if 's' in mode:
-                settime = target.settime(transittime, n_grid_points = 40, mode = 'next')
+                settime = target.settime(transittime, n_grid_points = 20, mode = 'next')
                 settimelist.append(settime.datetime)
             if 'm' in mode:
                 if transittime < self.ast_allnight[0]:
@@ -1190,39 +1189,35 @@ class ObsScheduler(mainConfig):
 #%% Usage
 if __name__ == '__main__':
     data = Table()
-    file_prefix ='IMSNG_'
-    project = 'IMSNG'
+    file_prefix ='ToO_'
+    project = 'ToO'
     savepath = './ACPscript/'
     subsequent_day = 5
     
     data_original = ascii.read('/Users/hhchoi1022/Desktop/HostGalaxyCatalog_90.csv')
     #data_original.rename_column('name', 'obj')
-    data_original = data_original[:300]
+    data_original = data_original[:10]
     #data_original = ascii.read('./test_IMSNG.dat', format = 'fixed_width')
     #data_original.rename_column('priority', 'weight')
-    #data_original.remove_columns(['filter','exptime','count','binning'])
     data = data_original
     date = Time.now()
     # obs = ObsScheduler(target_db = data, name_telescope = 'CBNUO', entire_night = False, date = date)
     # obs.write_rts(scheduled_only= False, filename_prefix =file_prefix)    
     # obs.show(save= True, filename_prefix = file_prefix, savepath = './script/')
-    
-    obs = ObsScheduler(target_db = data, project = project, name_telescope = 'LSGT', entire_night = True, date = date, duplicate_when_empty= False)
-    obs.write_rts(filename_prefix =file_prefix)
-    obs.write_txt(scheduled_only = False, format_ = 'ascii.fixed_width', filename_prefix =file_prefix)
-    obs.write_ACPscript_RASA36(filename_prefix =file_prefix) # for RASA36, shutdown = False   
-    obs.write_ACPscript_KCT(filename_prefix =file_prefix, shutdown = True) # for RASA36, shutdown = False
-    obs.write_ACPscript_LSGT(filename_prefix =file_prefix, period_script= 3, savepath = savepath) # for RASA36, shutdown = False
-    obs.show(save= True, filename_prefix = file_prefix)
-    #for i in range(subsequent_day):
-    #date += 1* u.day
-    # import time
-    # obs = ObsScheduler(target_db = data, project = project, name_telescope = 'LOAO', entire_night = True, date = date, duplicate_when_empty= False)
+    # obs = ObsScheduler(target_db = data, project = project, name_telescope = 'LSGT', entire_night = False, date = date, duplicate_when_empty= False)
     # obs.write_rts(filename_prefix =file_prefix)
     # obs.write_txt(scheduled_only = False, format_ = 'ascii.fixed_width', filename_prefix =file_prefix)
-    # obs.write_ACPscript_KCT(filename_prefix =file_prefix, shutdown = True, savepath = './ACPscript/') # for RASA36, shutdown = False
-    # obs.write_ACPscript_LSGT(filename_prefix =file_prefix, period_script= 3) # for RASA36, shutdown = False
+    # obs.write_ACPscript_RASA36(filename_prefix =file_prefix) # for RASA36, shutdown = False   
+    # obs.write_ACPscript_KCT(filename_prefix =file_prefix, shutdown = True) # for RASA36, shutdown = False
+    # obs.write_ACPscript_LSGT(filename_prefix =file_prefix, period_script= 3, savepath = savepath) # for RASA36, shutdown = False
     # obs.show(save= True, filename_prefix = file_prefix)
+    #for i in range(subsequent_day):
+    #date += 1* u.day
+    obs = ObsScheduler(target_db = data, project = project, name_telescope = 'KCT', entire_night = False, date = date, duplicate_when_empty= False)
+    obs.write_rts(filename_prefix =file_prefix)
+    obs.write_txt(scheduled_only = False, format_ = 'ascii.fixed_width', filename_prefix =file_prefix)
+    obs.write_ACPscript_KCT(filename_prefix =file_prefix, shutdown = True, savepath = './ACPscript/') # for RASA36, shutdown = False
+    obs.show(save= True, filename_prefix = file_prefix)
     
     # obs = ObsScheduler(target_db = data, project = project, name_telescope = 'RASA36', entire_night = True, date = date)
     # obs.write_ACPscript_KCT(filename_prefix =file_prefix, shutdown = True) # for RASA36, shutdown = False

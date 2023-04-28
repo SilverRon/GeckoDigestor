@@ -2,7 +2,7 @@
 #	Observatory = RASA36
 #	-18 deg sunset = 19:33
 #	-18 deg sunrise = 05:48
-#	Moon ra, dec = 8:8:22.64   25:32:52.27
+#	Moon ra, dec = 8:8:22.64   25:32:52.26
 #	Moon phase = 0.44
 #	Moon seperation limit = 40
 #	Altitude limit = 30

@@ -1,6 +1,7 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.io import ascii
 
 def makeSpecColors(n, palette='Spectral'):
 	#	Color palette
@@ -22,7 +23,11 @@ def plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title="", onl
 
 	# fig = plt.figure(figsize=(10, 8))
 	#	Galaxy
-	plt.scatter(simple_galcat['ra'], simple_galcat['dec'], c=simple_galcat[probkey], cmap='hot', edgecolors='k', zorder=10)
+	if only_center:
+		markersize = 10
+	else:
+		markersize = 36
+	plt.scatter(simple_galcat['ra'], simple_galcat['dec'], c=simple_galcat[probkey], cmap='hot', edgecolors='k', s=markersize, zorder=10)
 	cbar_gal = plt.colorbar()
 
 	plt.scatter(skymap['RA'][cumprob<0.9], skymap['DEC'][cumprob<0.9], c=skymap['CUMPROBDENSITY'][cumprob<0.9], alpha=0.5)
@@ -172,3 +177,77 @@ def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.nda
 				f.write('{0:<12}{1:<15}{2:<13}{3:<13}{4:<14}{5:<15}{6:<6}{7:<29}{8:}\n'.format('TOO',tname+'-'+str(dith), tra_sep,tdec_sep,'0   OBJECT',tname,cband,'120                   -     0',' #'+str(cnt)))
 	f.close()
 	return 
+
+
+import numpy as np
+
+def calc_apparent_mag(d, dprime, m):
+    """
+    Calculate the apparent magnitude at a distance dprime, given the apparent magnitude m at distance d.
+
+    Parameters:
+    -----------
+    d : float
+        Distance to the object in parsecs
+    dprime : float
+        Distance to the object in parsecs for which the magnitude is to be calculated
+    m : float
+        Apparent magnitude of the object at distance d
+
+    Returns:
+    --------
+    mprime : float
+        Apparent magnitude of the object at distance dprime
+    """
+    mprime = m + 5 * np.log10(dprime / d)
+    return mprime
+
+
+def expect_AT2017gfo(dprime, phase, filterlist=['g', 'r', 'i', 'z', 'y', 'J', 'H', 'K',], plot=True):
+	# filterlist = ['g', 'r', 'i', 'z', 'y', 'J', 'H', 'K',]
+	# for filte in ['g', 'r', 'i', 'z', 'y',]:
+	colors = makeSpecColors(len(filterlist), palette='Spectral')
+	expected_magdict = {}
+	d = 40 # [Mpc]
+	#	AT2017gfo Table
+	intbl = ascii.read('../data/AT2017gfo_phot_modified.dat', header_start=0, data_start=1)
+	for ff, filte in enumerate(filterlist):
+		# plt.plot(intbl['Phase'], intbl[filte], 'o-', mfc='w', label=filte)
+		mprime = calc_apparent_mag(d, dprime, intbl[filte])
+		mag_now = np.interp(phase, intbl['Phase'][~intbl[filte].mask], mprime[~intbl[filte].mask])
+		# if mag_now > 10:
+		# 	label = f"{filte}={mag_now:.1f}"
+		# else:
+		# 	label = filte
+		label = f"{filte}={mag_now:.1f}"
+		expected_magdict[filte] = mag_now
+		if plot:
+			# plt.plot(intbl['Phase'], mprime, 'o-', mfc='w', label=label)
+			# plt.plot(intbl['Phase'][~mprime.mask], mprime[~mprime.mask], 'o-', mfc='w', label=label)
+			plt.plot(intbl['Phase'][~mprime.mask], mprime[~mprime.mask], 'o-', c=colors[-ff-1], mfc='w', label=label)
+
+	if plot:
+		plt.axvspan(xmin=1e-3, xmax=phase, color='grey', alpha=0.25)
+		plt.axvline(x=phase, ls='-', color='tomato', lw=3, alpha=1.0, zorder=1, label=f'Now {phase:.1f}d')
+		plt.xlabel('Phase')
+		plt.ylabel('Mag [AB]')
+		plt.title(f"AT2017gfo-like KN (d={dprime:.1f} Mpc)")
+		plt.xlim([0, phase+2])
+		# yl, yu = plt.ylim()
+		yl = np.min(list(expected_magdict.values()))-0.25
+		yu = np.max(list(expected_magdict.values()))+3
+		plt.ylim([yu, yl])
+		plt.legend(framealpha=0.0, fontsize=10, loc='lower left', ncol=3)
+		plt.grid('both', ls='--', c='silver', alpha=0.5)
+		plt.tight_layout()
+	return expected_magdict
+
+
+def scale_depth(depth, t0, t1):
+    tratio = t1/t0
+    return depth+2.5*np.log10(np.sqrt(tratio))
+
+def scale_exptime(m0, m1):
+    delm = m1 - m0
+    tratio = 10**(delm/(1.25))
+    return tratio

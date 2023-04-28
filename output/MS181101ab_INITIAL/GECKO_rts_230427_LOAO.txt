@@ -2,7 +2,7 @@
 #	Observatory = LOAO
 #	-18 deg sunset = 20:29
 #	-18 deg sunrise = 04:11
-#	Moon ra, dec = 8:14:4.83   25:16:17.68
+#	Moon ra, dec = 8:14:4.83   25:16:17.7
 #	Moon phase = 0.45
 #	Moon seperation limit = 40
 #	Altitude limit = 30

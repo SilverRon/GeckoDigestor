@@ -301,9 +301,18 @@ except NameError:
 
 # %%
 result = crossmatch(skymap, coordinates, contours=(0.5, 0.9))
-cat['searched_prob_vol'] = result.searched_prob_vol
-# cat['probdensity_vol'] = result.probdensity_vol
-cat['prob_vol'] = result.probdensity_vol
+if np.isnan(result.probdensity_vol) & np.isnan(result.searched_prob_vol):
+	
+	f = open(f"{path_output}/note.txt", "w")
+	f.write(f"Crossmatch failed for P_3D. Use P_2D")
+	f.close()
+
+	print(f"Crossmatch failed for P_3D. Use P_2D")
+	cat['searched_prob_vol'] = result.searched_prob
+	cat['prob_vol'] = result.probdensity
+else:
+	cat['searched_prob_vol'] = result.searched_prob_vol
+	cat['prob_vol'] = result.probdensity_vol
 
 # %%
 indx_vol90 = np.where(cat['searched_prob_vol']<confidence_limit)
@@ -622,7 +631,7 @@ for obs in ['KCT', 'CBNUO', 'RASA36', 'KMTNet',]:
 				obsname = f"KMTNet_{site}"
 				file_prefix ='GECKO_'
 				obssch = ObsScheduler(target_db = data_original, name_telescope = obsname, entire_night = True, duplicate_when_empty= False, date = date, autofocus_at_init= False)
-				logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = True, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
+				logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
 				obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
 
 				#	KMTNet Script Inputs

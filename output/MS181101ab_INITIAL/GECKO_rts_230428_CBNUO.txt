@@ -2,7 +2,7 @@
 #	Observatory = CBNUO
 #	-18 deg sunset = 20:50
 #	-18 deg sunrise = 04:00
-#	Moon ra, dec = 8:31:12.1   24:21:6.93
+#	Moon ra, dec = 8:31:12.09   24:21:6.98
 #	Moon phase = 0.48
 #	Moon seperation limit = 40
 #	Altitude limit = 30
