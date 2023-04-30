@@ -55,8 +55,8 @@ def slack_bot(token, channel, text):
 
 # %% [markdown]
 # - Online Test
-path_out = '../output'
-slack = True
+# path_out = '../output'
+slack = False
 #	Read HEAVY GLADE+ catalog in advance
 try:
 	cat
@@ -89,6 +89,7 @@ indx_smnet = np.where(
 #	Online Test
 config = {
 	'group.id': '',
+	'max.poll.interval.ms': 1000000,
 	# 'auto.offset.reset': 'earliest'
 	}
 
@@ -103,6 +104,16 @@ while True:
 	print("Waiting for a GW alert...")
 	for message in consumer.consume(timeout=30*24*60*60):
 		record, skymap = AlertReceiver(message.value())
+		#	Superevent?
+		if "S" in record['superevent_id']:
+			print("This is a superevent")
+			slack = True
+		elif "MS" in record['superevent_id']:
+			slack = False
+			print("This is not a superevent")
+		else:
+			slack = True
+			print("I don't know what this is")
 		st = time.time()
 
 		# 새로 생성할 디렉토리 이름
@@ -131,7 +142,6 @@ while True:
 			# with open('../data/MS181101ab-ext-update.json', 'r') as f:
 			# with open('../data/MS181101ab-initial.json', 'r') as f:
 			#     record = f.read()
-
 			# record, skymap = AlertReceiver(record)
 
 			# %% [markdown]
@@ -277,6 +287,7 @@ while True:
 				print(f"RA ranges: {ramin:.3f}~{ramax:.3f} deg")
 				print(f"DEC ranges: {decmin:.3f}~{decmax:.3f} deg")
 
+				ra_hms, dec_dms = deg2hmsdms(ramax, decmax)
 				# %% [markdown]
 				# - Check distance and most probable sky location
 				# - Meta data from skymap
@@ -437,6 +448,7 @@ while True:
 
 				simple_galcat['confidence'] = 0.0
 				simple_galcat['confidence'][np.max(cumsum_prob_gal)*1.0>=cumsum_prob_gal] = 1.0
+				simple_galcat['confidence'][np.max(cumsum_prob_gal)*0.99>=cumsum_prob_gal] = 0.99
 				simple_galcat['confidence'][np.max(cumsum_prob_gal)*0.95>=cumsum_prob_gal] = 0.95
 				simple_galcat['confidence'][np.max(cumsum_prob_gal)*0.9>=cumsum_prob_gal] = 0.9
 				simple_galcat['confidence'][np.max(cumsum_prob_gal)*0.5>=cumsum_prob_gal] = 0.5
@@ -479,8 +491,8 @@ while True:
 				plt.savefig(f"{path_output}/skymap_90.png", dpi=100,)
 				plt.close()
 				# %%
-				# fig = plt.figure(figsize=(20, 8))
-				fig = plt.figure(figsize=(40, 16))
+				fig = plt.figure(figsize=(20, 8))
+				# fig = plt.figure(figsize=(40, 16))
 
 				plt.subplot(121)
 
@@ -500,10 +512,13 @@ while True:
 				# plt.tight_layout()
 
 				plt.subplot(122)
-				plt.plot(cumsum_prob_gal, '.-', mfc='w', mew=3, ms=10, lw=3, c='g', label=f"All ({len(cumsum_prob_gal)})", zorder=0)
-				plt.axhline(y=0.95*sum_prob_gal, ls='-', c='tomato', lw=3, alpha=0.75, label=f"95% ({len(simple_galcat[simple_galcat['confidence']<=0.95])})")
-				plt.axhline(y=0.9*sum_prob_gal, ls=':', c='tomato', lw=3, alpha=0.75, label=f"90% ({len(simple_galcat[simple_galcat['confidence']<=0.9])})")
-				plt.axhline(y=0.5*sum_prob_gal, ls='--', c='tomato', lw=3, alpha=0.5, label=f"50% ({len(simple_galcat[simple_galcat['confidence']<=0.5])})")
+				#	Normalization of the cumulative probability
+				norm_factor = np.max(cumsum_prob_gal)
+				plt.plot(cumsum_prob_gal/norm_factor, '.-', mfc='w', mew=3, ms=10, lw=3, c='g', label=f"All ({len(cumsum_prob_gal)})", zorder=0)
+				plt.axhline(y=0.99*sum_prob_gal/norm_factor, ls='-', c='tomato', lw=3, alpha=1.0, label=f"99% ({len(simple_galcat[simple_galcat['confidence']<=0.99])})")
+				plt.axhline(y=0.95*sum_prob_gal/norm_factor, ls='-.', c='tomato', lw=3, alpha=0.75, label=f"95% ({len(simple_galcat[simple_galcat['confidence']<=0.95])})")
+				plt.axhline(y=0.9*sum_prob_gal/norm_factor, ls=':', c='tomato', lw=3, alpha=0.75, label=f"90% ({len(simple_galcat[simple_galcat['confidence']<=0.9])})")
+				plt.axhline(y=0.5*sum_prob_gal/norm_factor, ls='--', c='tomato', lw=3, alpha=0.5, label=f"50% ({len(simple_galcat[simple_galcat['confidence']<=0.5])})")
 				plt.xlabel('Number of Host Candidates', fontsize=20)
 
 				if probkey == 'prob_vol':
@@ -517,8 +532,9 @@ while True:
 				plt.legend(loc='lower right', fontsize=20)
 				# _ = plt.yticks(np.arange(0, 1.1, 0.1))
 				plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
+				yticks = plt.yticks(fontsize=20)
 				plt.xticks(fontsize=20)
-				plt.yticks(fontsize=20)
+				plt.yticks(np.arange(0, 1.01, 0.1), fontsize=20)
 
 				plt.tight_layout()
 				plt.savefig(f"{path_output}/cumulative_p3d_HostGalaxy.png", dpi=100,)
@@ -549,6 +565,7 @@ while True:
 					obssch.write_ACPscript_LSGT(filename_prefix =file_prefix, period_script= 3, savepath = f"{path_output}/",) # for RASA36, shutdown = False
 					logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
 					obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
+					n_observable_LSGT = len(obssch.target_observable)
 					#------------------------------------------------------------
 					#	LOAO
 					#------------------------------------------------------------
@@ -563,6 +580,7 @@ while True:
 					obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/",)
 					logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
 					obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
+					n_observable_LOAO = len(obssch.target_observable)
 					#------------------------------------------------------------
 					#	SAO
 					#------------------------------------------------------------
@@ -577,6 +595,7 @@ while True:
 					obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/",)
 					logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
 					obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
+					n_observable_SAO = len(obssch.target_observable)
 
 				# %% [markdown]
 				# # 4. sky grid matching
@@ -636,12 +655,13 @@ while True:
 
 						select_skygrid_cat['confidence'] = 0.0
 						select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*1.0>=cumsum_prob_skygrid] = 1.0
+						select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.99>=cumsum_prob_skygrid] = 0.99
 						select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.95>=cumsum_prob_skygrid] = 0.95
 						select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.9>cumsum_prob_skygrid] = 0.9
 						select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.5>cumsum_prob_skygrid] = 0.5
 
 						fig = plt.figure(figsize=(20, 8))
-						fig = plt.figure(figsize=(40, 16))
+						# fig = plt.figure(figsize=(40, 16))
 
 						title = f"{record['alert_type']}: {area_90.to_value(u.deg**2):.1f} "+r"$\rm deg^2$ "+f"for {obs}"
 						plt.subplot(121)
@@ -658,12 +678,12 @@ while True:
 
 
 						plt.subplot(122)
-						# fig = plt.figure(figsize=(10, 8))
-						plt.plot(cumsum_prob_skygrid, 'o-', mfc='w', mew=3, ms=10, lw=3, c='g')
+						plt.plot(cumsum_prob_skygrid/np.max(cumsum_prob_skygrid), 'o-', mfc='w', mew=3, ms=10, lw=3, c='g')
 						# include 95%, 99% 
-						plt.axhline(y=0.95*sum_prob_skygrid, ls='-', c='tomato', lw=3, alpha=0.75, label=f"95% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.95])})")
-						plt.axhline(y=0.9*sum_prob_skygrid, ls=':', c='tomato', lw=3, alpha=0.75, label=f"90% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.9])})")
-						plt.axhline(y=0.5*sum_prob_skygrid, ls='--', c='tomato', lw=3, alpha=0.5, label=f"50% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.5])})")
+						plt.axhline(y=0.99*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='-', c='tomato', lw=3, alpha=0.75, label=f"99% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.99])})")
+						plt.axhline(y=0.95*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='-.', c='tomato', lw=3, alpha=0.75, label=f"95% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.95])})")
+						plt.axhline(y=0.9*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls=':', c='tomato', lw=3, alpha=0.75, label=f"90% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.9])})")
+						plt.axhline(y=0.5*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='--', c='tomato', lw=3, alpha=0.5, label=f"50% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.5])})")
 
 						if probkey == 'prob_vol':
 							ylabel = r'Cumulative $\rm P_{3D}$'
@@ -682,7 +702,9 @@ while True:
 
 						plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
 						plt.xticks(fontsize=20)
-						plt.yticks(fontsize=20)
+						# plt.yticks(fontsize=20)
+						plt.yticks(np.arange(0, 1.01, 0.1), fontsize=20)
+
 
 
 						plt.tight_layout()
@@ -722,10 +744,13 @@ while True:
 								obssch = ObsScheduler(target_db = data_original, name_telescope = obs, entire_night = True, duplicate_when_empty= False, date = date, autofocus_at_init= False)
 								if obs == 'RASA36':
 									obssch.write_ACPscript_RASA36(filename_prefix =file_prefix, savepath = f"{path_output}/",) # for RASA36, shutdown = False   
+									n_observable_RASA36 = len(obssch.target_observable)
 								elif obs == 'KCT':
 									obssch.write_ACPscript_KCT(filename_prefix =file_prefix, shutdown = True, savepath = f"{path_output}/",) # for RASA36, shutdown = False
-								else:
+									n_observable_KCT = len(obssch.target_observable)
+								elif obs == 'CBNUO':
 									obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/")
+									n_observable_CBNUO = len(obssch.target_observable)
 								# elif obs == 'LSGT':
 								# 	obssch.write_ACPscript_LSGT(filename_prefix =file_prefix, period_script= 3) # for RASA36, shutdown = False
 								logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
@@ -744,6 +769,12 @@ while True:
 									obssch = ObsScheduler(target_db = data_original, name_telescope = obsname, entire_night = True, duplicate_when_empty= False, date = date, autofocus_at_init= False)
 									logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
 									obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
+									if site == 'SSO':
+										n_observable_KMTNet_SSO = len(obssch.target_observable)
+									elif site == 'SAAO':
+										n_observable_KMTNet_SAAO = len(obssch.target_observable)
+									elif site == 'CTIO':
+										n_observable_KMTNet_CTIO = len(obssch.target_observable)
 									plt.close()
 
 									#	KMTNet Script Inputs
@@ -760,16 +791,66 @@ while True:
 										cbands,
 										path_save=path_output)
 								date += 1*u.day
+				#============================================================
+				#	Summary
+				#------------------------------------------------------------
+				delt = time.time() - st
 
+				_summary_txt = f"""event {record['superevent_id']}_{record['alert_type']}
+				trigger_time {record['event']['time']}
+				process_start {t_now.isot}Z
+				process_time(sec) {delt:.1f}
+				phase(day) {phase:1.1f}
+				classification {most_probable_event}({most_probable_event_prob*1e2:g}%)
+				distance(Mpc) {record['distmean']:.1f}+/-{record['diststd']:.1f}
+				area_90%(deg2) {area_90.to(u.deg**2).value:.1f}
+				radec_max(deg) {ramax:1.3f},{decmax:1.3f}
+				radec_max(hmsdms) {ra_hms},{dec_dms}
+				n_host_galaxy_all {len(simple_galcat)}
+				n_host_galaxy_90% {len(simple_galcat[simple_galcat['confidence']<=0.9])}
+				n_host_galaxy_50% {len(simple_galcat[simple_galcat['confidence']<=0.5])}
+				"""
+				for filte in list(expected_magdict.keys()):
+					_summary_txt += f"expected_{filte}mag {expected_magdict[filte]:.1f}\n"
+				_summary_txt +=f"""SAO {n_observable_SAO}
+				LOAO {n_observable_LOAO}
+				LSGT {n_observable_LSGT}
+				RASA36 {n_observable_RASA36}
+				KCT {n_observable_KCT}
+				CBNUO {n_observable_CBNUO}
+				KMTNet_SSO {n_observable_KMTNet_SSO}
+				KMTNet_CTIO {n_observable_KMTNet_CTIO}
+				KMTNet_SAAO {n_observable_KMTNet_SAAO}"""
+				print(_summary_txt)
+				text_list = []
+
+				cols = _summary_txt.split('\n')
+				col0 = [c.split()[0] for c in cols]
+				col1 = [c.split()[1] for c in cols]
+
+				for i, (c0, c1,) in enumerate(zip(col0, col1,)):
+					# 첫 번째 열 출력
+					# print(f'{c0:<{20}}', end=' ')
+					# print(f'{c1:<{20}}', end=' ')
+					text_list.append(f'{c0:<{20}}{c1}')
+
+				summary_txt = '\n'.join(text_list)
+				print(summary_txt)
+
+				s = open(f"{path_output}/summary.txt", "w")
+				s.write(summary_txt)
+				s.close()
+				
+				
 				# %% [markdown]
 				# # Fin. ALERT!!!
 
 				# %%
-				delt = time.time() - st
 				OAuth_Token = SLACK_API_CONFIG['OAuth_Token']
 
 				channel = '#gecko--alert'
-				text = f"[`GeckoDigestor`] Observation is ready for {record['superevent_id']}-{record['alert_type']} ({delt:1.1f}s)!\nqso:{path_output}"
+				# text = f"[`GeckoDigestor`] TEST messeage"
+				text = f"[`GeckoDigestor`] Process is done for {record['superevent_id']}-{record['alert_type']} (qso:{path_output})\n"+f"""```{summary_txt}```"""
 				#---------------------------------
 				#       Slack message
 				#---------------------------------
@@ -811,3 +892,4 @@ while True:
 			)
 			if slack:
 				slack_bot(**param_slack)
+#%%
