@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import ascii
 
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+
 def makeSpecColors(n, palette='Spectral'):
 	#	Color palette
 	palette = sns.color_palette(palette, as_cmap=True,)
@@ -251,3 +254,29 @@ def scale_exptime(m0, m1):
     delm = m1 - m0
     tratio = 10**(delm/(1.25))
     return tratio
+
+
+
+def deg2hmsdms(ra_deg, dec_deg):
+    """
+    Convert RA, Dec in decimal degrees to sexagesimal HMS, DMS strings.
+    
+    Parameters
+    ----------
+    ra_deg : float or numpy.ndarray
+        Right Ascension in decimal degrees
+    dec_deg : float or numpy.ndarray
+        Declination in decimal degrees
+    
+    Returns
+    -------
+    hms, dms : tuple of str or tuple of numpy.ndarray
+        Sexagesimal HMS string and DMS string
+    """
+    # Create SkyCoord object with input RA, Dec in degrees
+    coords = SkyCoord(ra_deg*u.deg, dec_deg*u.deg, frame='icrs')
+    # Convert to sexagesimal format
+    hms = coords.ra.to_string(unit=u.hour, sep=':', precision=2, pad=True)
+    dms = coords.dec.to_string(unit=u.degree, sep=':', precision=2, pad=True, alwayssign=True)
+    
+    return hms, dms
