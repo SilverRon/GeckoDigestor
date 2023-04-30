@@ -100,15 +100,15 @@ consumer = Consumer(
 	)
 consumer.subscribe(['igwn.gwalert'])
 
+print("Waiting for a GW alert...")
 while True:
-	print("Waiting for a GW alert...")
 	for message in consumer.consume(timeout=30*24*60*60):
 		record, skymap = AlertReceiver(message.value())
 		#	Superevent?
-		if "S" in record['superevent_id']:
+		if "S" == record['superevent_id'][0:1]:
 			print("This is a superevent")
 			slack = True
-		elif "MS" in record['superevent_id']:
+		elif "MS" == record['superevent_id'][0:2]:
 			slack = False
 			print("This is not a superevent")
 		else:
@@ -886,6 +886,8 @@ while True:
 				)
 				if slack:
 					slack_bot(**param_slack)
+				print("Waiting for a GW alert...")
+				
 		else:
 			OAuth_Token = SLACK_API_CONFIG['OAuth_Token']
 
@@ -901,4 +903,6 @@ while True:
 			)
 			if slack:
 				slack_bot(**param_slack)
+			print("Waiting for a GW alert...")
+
 #%%
