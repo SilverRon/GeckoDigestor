@@ -605,6 +605,15 @@ while True:
 				# obs = 'CBNUO'
 				# obs = 'RASA36'
 				# for obs in ['KCT', 'CBNUO', 'RASA36']:
+
+				#	Default values for escaping the error
+				n_observable_RASA36 = 0
+				n_observable_KCT = 0
+				n_observable_CBNUO = 0
+				n_observable_KMTNet_SSO = 0
+				n_observable_KMTNet_CTIO = 0
+				n_observable_KMTNet_SAAO = 0
+
 				for obs in ['KCT', 'CBNUO', 'RASA36', 'KMTNet',]:
 					print(f"Generating Tiling Pattern for {obs}")
 
