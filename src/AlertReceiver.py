@@ -34,7 +34,7 @@ import os
 #	Append the path to the GECKO project root directory
 import sys
 sys.path.append('..')
-from config.config import GCN_KAFKA_CONFIG
+from config.config import *
 #%%
 def AlertReceiver(record):
     record = json.loads(record)
@@ -85,6 +85,7 @@ def AlertReceiver(record):
         cumprob = np.cumsum(prob)
         i = cumprob.searchsorted(0.9)
         area_90 = pixel_area[:i].sum()
+        print(f"Area = {area_90:.1f} deg2")
 
         #   Put additional information to the record
         record['ramax'] = ra.deg
@@ -100,17 +101,17 @@ def AlertReceiver(record):
 
 
     # # 새로 생성할 디렉토리 이름
-    # new_directory = f"../output/{record['superevent_id']}_{record['alert_type']}"
+    # path_output = f"../output/{record['superevent_id']}_{record['alert_type']}"
     # # 디렉토리가 존재하지 않으면 생성
-    # if not os.path.exists(new_directory):
-    #     os.makedirs(new_directory)
+    # if not os.path.exists(path_output):
+    #     os.makedirs(path_output)
     # # 딕셔너리를 JSON 문자열로 변환
     # record_str = json.dumps(record)
     # # JSON 문자열을 파일로 저장
-    # with open(f'{new_directory}/record.json', 'w') as file:
+    # with open(f'{path_output}/record.json', 'w') as file:
     #     file.write(record_str)
 
-    # write_skymap_to_fits(skymap, path_output=f"{new_directory}/skymap.fits")
+    # write_skymap_to_fits(skymap, path_output=f"{path_output}/skymap.fits")
 
 
     return record, skymap
@@ -130,16 +131,61 @@ def write_skymap_to_fits(skymap, path_output):
     # 실제 파일로 저장하는 부분
     write_sky_map(path_output, skymap, nest=True)
 #%%
-#	Online Test
-# consumer = Consumer(client_id=GCN_KAFKA_CONFIG['client_id'], client_secret=GCN_KAFKA_CONFIG['client_secret'],)
-# consumer.subscribe(['igwn.gwalert'])
-
-# while True:
-#     for message in consumer.consume():
-#         record, skymap = AlertReceiver(message.value())
-#%%
 #	Offline Test
 # with open('../data/MS181101ab-preliminary.json', 'r') as f:
 #     record = f.read()
+# record, skymap = AlertReceiver(record)
+ #%%
+#	Online Test
+config = {
+	'group.id': '',
+	'max.poll.interval.ms': 1000000,
+	# 'auto.offset.reset': 'earliest'
+	}
 
-# AlertReceiver(record)
+consumer = Consumer(
+	config=config,
+	client_id=GCN_KAFKA_CONFIG['client_id'],
+	client_secret=GCN_KAFKA_CONFIG['client_secret'],
+	)
+consumer.subscribe(['igwn.gwalert'])
+
+print("Waiting for a GW alert...")
+# while False:
+if __name__ == "__main__":
+    while True:
+        for message in consumer.consume(timeout=30*24*60*60):
+            record, skymap = AlertReceiver(message.value())
+            #	Superevent?
+            if "S" == record['superevent_id'][0:1]:
+                print("This is a superevent")
+                slack = True
+            elif "MS" == record['superevent_id'][0:2]:
+                slack = False
+                print("This is not a superevent")
+            else:
+                slack = True
+                print("I don't know what this is")
+
+            # 새로 생성할 디렉토리 이름
+            path_output = f"{path_out}/{record['superevent_id']}_{record['alert_type']}"
+            # 디렉토리가 존재하지 않으면 생성
+            if not os.path.exists(path_output):
+                os.makedirs(path_output)
+            # 딕셔너리를 JSON 문자열로 변환
+            record_str = json.dumps(record)
+            # JSON 문자열을 파일로 저장
+            with open(f'{path_output}/record.json', 'w') as file:
+                file.write(record_str)
+
+            most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
+            eventlogtbl = Table.read(f"{path_out}/event.log", format='ascii.fixed_width')
+            eventlogtbl.add_row(
+                [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'],]
+            )
+
+            for key in eventlogtbl.keys():
+                if key in ['ramax', 'decmax', 'area_90', 'distmean', 'diststd']:
+                    eventlogtbl[key].format = ".3f"
+                
+            eventlogtbl.write(f"{path_out}/event.log", format='ascii.fixed_width', overwrite=True)
