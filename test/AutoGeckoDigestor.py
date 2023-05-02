@@ -569,13 +569,27 @@ while True:
 					#------------------------------------------------------------
 					#	LOAO
 					#------------------------------------------------------------
+					filte = 'r'
+					exptime0 = 10*60 # [sec]
+					depth = gcktbl[f'depth_10min'][gcktbl['obs']=="LOAO"].item()
+					m = expected_magdict['r']
+					#	Minimum criteria
+					exp_min = 60
+					obs_min = 3
+					total_exptime = exptime_for_mag(m, depth, exptime0)
+					exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+					#
+					_simple_galcat = simple_galcat.copy()
+					_simple_galcat['exptime'] = f"{exp_time},{exp_time}"
+					_simple_galcat['count'] = f"{obs_count},{obs_count}"
+					#
 					obssch = ObsScheduler(
-						target_db=simple_galcat[:NUMBER_GALAXY_LIMIT],
+						target_db=_simple_galcat[:NUMBER_GALAXY_LIMIT],
 						name_telescope='LOAO',
 						entire_night=True,
 						duplicate_when_empty=False,
 						date=date,
-						autofocus_at_init=False
+						autofocus_at_init=False,
 						)
 					obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/",)
 					logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
