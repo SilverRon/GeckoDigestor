@@ -1,0 +1,28 @@
+; Prepare for the observation
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230430g	10:36:33	-44:31:58
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230430g	11:06:31	-37:39:10
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230430g	11:10:56	-35:58:58
+
+#QUITAT 05/02/23 19:12:57

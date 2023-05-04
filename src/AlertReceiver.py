@@ -85,7 +85,7 @@ def AlertReceiver(record):
         cumprob = np.cumsum(prob)
         i = cumprob.searchsorted(0.9)
         area_90 = pixel_area[:i].sum()
-        print(f"Area = {area_90:.1f} deg2")
+        print(f"Area = {area_90.to(u.deg**2).value:.1f} deg2")
 
         #   Put additional information to the record
         record['ramax'] = ra.deg
@@ -177,11 +177,14 @@ if __name__ == "__main__":
             # JSON 문자열을 파일로 저장
             with open(f'{path_output}/record.json', 'w') as file:
                 file.write(record_str)
+            if record['alert_type'] == 'RETRACTION':
+                most_probable_event = 0.0
+            else:
+                most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
 
-            most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
             eventlogtbl = Table.read(f"{path_out}/event.log", format='ascii.fixed_width')
             eventlogtbl.add_row(
-                [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'],]
+                [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], f"{record['superevent_id']}_{record['alert_type']}"]
             )
 
             for key in eventlogtbl.keys():

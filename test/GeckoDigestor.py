@@ -28,7 +28,7 @@ from util.util import *
 #	Scheduler
 sys.path.append('../observation')
 sys.path.append('../observation/Obsscheduler')
-from Obsscheduler.obsscheduler import ObsScheduler
+from Obsscheduler.obsscheduler import ObsScheduler, ScriptMaker
 
 
 # %%
@@ -98,7 +98,7 @@ while True:
 
 	# print elapsed time in dd:hh:mm:ss format
 	print(f"Elapsed time: [{elapsed_time.days:02d}:{elapsed_time.seconds // 3600:02d}:{(elapsed_time.seconds // 60) % 60:02d}:{elapsed_time.seconds % 60:02d}]", end='\r')
-	time.sleep(1)
+	# time.sleep(1)
 
 
 	#	Read log file
@@ -243,7 +243,11 @@ while True:
 					t_gw = Time(record['event']['time'])
 					# t_now = Time("2018-11-03T04:30:46.654Z")
 					t_now = Time.now()
-					phase = t_now.jd - t_gw.jd
+					if record['superevent_id'] == 'MS181101ab':
+						print("This is an MS181101ab event for test the pipeline")
+						phase = 1.0
+					else:
+						phase = t_now.jd - t_gw.jd
 					print(f"Phase: {phase:.1f} days")
 					# %%
 					most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
@@ -578,71 +582,155 @@ while True:
 					print("Galaxy-targeted observation")
 					print(f"-"*60)
 
-					date = Time.now()
+					target_db = simple_galcat
+
+					if record['superevent_id'] == 'MS181101ab':
+						date = Time('2023-04-01T00:00:05.000000', format='isot')
+						print("This is an MS181101ab event for test the pipeline")
+					else:
+						date = Time.now()
 					subsequent_days = obs_request_day
-					file_prefix ='GECKO_'
-					# for i in range(subsequent_days):
+					name_project = 'GECKO'
+					filename_prefix = 'GECKO_'
+					ACP_savepath = path_output
+					rts_savepath = path_output
+					n_target_for_each_timeslot = 2
 					for i in range(subsequent_days):
 						#------------------------------------------------------------
 						#	LSGT
 						#------------------------------------------------------------
-						obssch = ObsScheduler(
-							target_db=simple_galcat[:NUMBER_GALAXY_LIMIT],
-							name_telescope='LSGT',
-							entire_night=True,
-							duplicate_when_empty=False,
-							date=date,
-							autofocus_at_init=False
-							)
-						# obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/",)
-						obssch.write_ACPscript_LSGT(filename_prefix =file_prefix, period_script= 3, savepath = f"{path_output}/",) # for RASA36, shutdown = False
-						logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
-						obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
-						n_observable_LSGT = len(obssch.target_observable)
-						#------------------------------------------------------------
-						#	LOAO
-						#------------------------------------------------------------
+						name_telescope = 'LSGT'
+						print(f"Generating Target List for {name_telescope}")
+
 						filte = 'r'
 						exptime0 = 10*60 # [sec]
-						depth = gcktbl[f'depth_10min'][gcktbl['obs']=="LOAO"].item()
+						depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
 						m = expected_magdict['r']
 						#	Minimum criteria
 						exp_min = 60
 						obs_min = 3
 						total_exptime = exptime_for_mag(m, depth, exptime0)
-						exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-						#
-						_simple_galcat = simple_galcat.copy()
-						_simple_galcat['exptime'] = f"{exp_time},{exp_time}"
-						_simple_galcat['count'] = f"{obs_count},{obs_count}"
-						#
-						obssch = ObsScheduler(
-							target_db=_simple_galcat[:NUMBER_GALAXY_LIMIT],
-							name_telescope='LOAO',
-							entire_night=True,
-							duplicate_when_empty=False,
-							date=date,
-							autofocus_at_init=False,
-							)
-						obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/",)
-						logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
-						obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
-						n_observable_LOAO = len(obssch.target_observable)
+						if total_exptime < EXPTIME_LIMIT_SMNET:
+							exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+							print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+							print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
+							#
+							_simple_galcat = simple_galcat.copy()
+							_simple_galcat['exptime'] = f"{exp_time},{exp_time}"
+							_simple_galcat['count'] = f"{obs_count},{obs_count}"
+							#
+							scheduler_host = ObsScheduler(
+								target_db=_simple_galcat,
+								date = date,
+								name_project = name_project,
+								name_telescope = name_telescope,
+								entire_night = False
+								)
+							# Define target
+							scriptmaker_host = ScriptMaker(scheduler_host)
+							# Action
+							scriptmaker_host.write_ACPscript_LSGT(filename_prefix=filename_prefix, savepath = ACP_savepath, period_script= 3)
+							scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+							# logtbl = scriptmaker_host.result.scheduled
+							# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
+							scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+							n_observable_LSGT = len(scriptmaker_host.result.scheduled)
+						else:
+							n_observable_LSGT = 0
+							print(f"Total Exposure Time ({total_exptime:1.1f} sec) exceeds EXPTIME_LIMIT_SNET {EXPTIME_LIMIT_SMNET} sec")
+						print(f"{n_observable_LSGT} LSGT observations")
+						print("Done!\n")
+						#------------------------------------------------------------
+						#	LOAO
+						#------------------------------------------------------------
+						name_telescope = 'LOAO'
+						print(f"Generating Target List for {name_telescope}")
+						
+						filte = 'r'
+						exptime0 = 10*60 # [sec]
+						depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
+						m = expected_magdict['r']
+						#	Minimum criteria
+						exp_min = 60
+						obs_min = 3
+						total_exptime = exptime_for_mag(m, depth, exptime0)
+						if total_exptime < EXPTIME_LIMIT_SMNET:
+							exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+							print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+							print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
+							#
+							_simple_galcat = simple_galcat.copy()
+							_simple_galcat['exptime'] = f"{exp_time},{exp_time}"
+							_simple_galcat['count'] = f"{obs_count},{obs_count}"
+							#
+							scheduler_host = ObsScheduler(
+								target_db= _simple_galcat,
+								date = date,
+								name_project = name_project,
+								name_telescope = name_telescope,
+								entire_night = False
+								)
+							# Define target
+							scriptmaker_host = ScriptMaker(scheduler_host)
+							# Action
+							scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+							scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+							scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+
+							# logtbl = scriptmaker_host.result.scheduled
+							# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
+							n_observable_LOAO = len(scriptmaker_host.result.scheduled)
+						else:
+							n_observable_LOAO = 0
+							print(f"Total Exposure Time ({total_exptime:1.1f} sec) exceeds EXPTIME_LIMIT_SNET {EXPTIME_LIMIT_SMNET} sec")
+						print(f"{n_observable_LOAO} LOAO observations")
+						print("Done!\n")
+
 						#------------------------------------------------------------
 						#	SAO
 						#------------------------------------------------------------
-						obssch = ObsScheduler(
-							target_db=simple_galcat[:NUMBER_GALAXY_LIMIT],
-							name_telescope='SAO',
-							entire_night=True,
-							duplicate_when_empty=False,
-							date=date,
-							autofocus_at_init=False
-							)
-						obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/",)
-						logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
-						obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
-						n_observable_SAO = len(obssch.target_observable)
+						name_telescope = 'SAO'
+						print(f"Generating Target List for {name_telescope}")
+
+						filte = 'r'
+						exptime0 = 10*60 # [sec]
+						depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
+						m = expected_magdict['r']
+						#	Minimum criteria
+						exp_min = 120
+						obs_min = 3
+						total_exptime = exptime_for_mag(m, depth, exptime0)
+						if total_exptime > EXPTIME_LIMIT_SMNET:
+							exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+							print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+							print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
+							#
+							_simple_galcat = simple_galcat.copy()
+							_simple_galcat['exptime'] = f"{exp_time},{exp_time}"
+							_simple_galcat['count'] = f"{obs_count},{obs_count}"
+							#
+							scheduler_host = ObsScheduler(
+								target_db= _simple_galcat,
+								date = date,
+								name_project = name_project,
+								name_telescope = name_telescope,
+								entire_night = False
+								)
+							# Define target
+							scriptmaker_host = ScriptMaker(scheduler_host)
+							# Action
+							scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+							scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+							scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+
+							# logtbl = scriptmaker_host.result.scheduled
+							# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
+							n_observable_SAO = len(scriptmaker_host.result.scheduled)
+						else:
+							n_observable_SAO = 0
+						print(f"{n_observable_SAO} SAO observations")
+						print("Done!\n")
+
 
 					# %% [markdown]
 					# # 4. sky grid matching
@@ -790,48 +878,80 @@ while True:
 							}
 							select_skygrid_cat.write(f"{select_skygrid_cat_name}", format='csv', overwrite=True)
 
-							date = Time.now()
+							# date = Time.now()
 							#	Observation Request
 							if obs in ['RASA36', 'KCT', 'CBNUO']:
-								data_original = select_skygrid_cat
-								# data_original.remove_rows([7, 4])
 								subsequent_days = obs_request_day
 								file_prefix ='GECKO_'
 								for i in range(subsequent_days):
-									obssch = ObsScheduler(target_db = data_original, name_telescope = obs, entire_night = True, duplicate_when_empty= False, date = date, autofocus_at_init= False)
+									scheduler_grid = ObsScheduler(
+										target_db= select_skygrid_cat,
+										date = date,
+										name_project = name_project,
+										name_telescope = obs,
+										entire_night = False
+										)
+
 									if obs == 'RASA36':
-										obssch.write_ACPscript_RASA36(filename_prefix =file_prefix, savepath = f"{path_output}/",) # for RASA36, shutdown = False   
-										n_observable_RASA36 = len(obssch.target_observable)
+										# Define target
+										scriptmaker_grid = ScriptMaker(scheduler_grid)
+										# Action
+										scriptmaker_grid.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
+										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+										scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+										n_observable_RASA36 = len(scriptmaker_grid.result.scheduled)
+										print(f"{n_observable_RASA36} RASA36 observations")
+										print("Done!\n")
+
 									elif obs == 'KCT':
-										obssch.write_ACPscript_KCT(filename_prefix =file_prefix, shutdown = True, savepath = f"{path_output}/",) # for RASA36, shutdown = False
-										n_observable_KCT = len(obssch.target_observable)
+										# Define target
+										scriptmaker_grid = ScriptMaker(scheduler_grid)
+										# Action
+										scriptmaker_grid.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath)
+										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+										scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+										n_observable_KCT = len(scriptmaker_grid.result.scheduled)
+										print(f"{n_observable_KCT} KCT observations")
+										print("Done!\n")
+
+										n_observable_KCT = len(scriptmaker_grid.result.scheduled)
 									elif obs == 'CBNUO':
-										obssch.write_rts(filename_prefix =file_prefix, savepath = f"{path_output}/")
-										n_observable_CBNUO = len(obssch.target_observable)
-									# elif obs == 'LSGT':
-									# 	obssch.write_ACPscript_LSGT(filename_prefix =file_prefix, period_script= 3) # for RASA36, shutdown = False
-									logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
-									obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
+										# Define target
+										scriptmaker_grid = ScriptMaker(scheduler_grid)
+										# Action
+										scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+										scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+										n_observable_CBNUO = len(scriptmaker_grid.result.scheduled)
 									plt.close()
 									date += 1*u.day
 							elif obs == 'KMTNet':
 								data_original = select_skygrid_cat
+								cbands = ['B', 'R']
 								for i in range(subsequent_days):
-									cbands = ['B', 'R']
 									date_str = f"{date.datetime.year}{date.datetime.month:0>2}{date.datetime.day:0>2}"
 
 									for site in ['SSO', 'SAAO', 'CTIO']:
 										obsname = f"KMTNet_{site}"
-										file_prefix ='GECKO_'
-										obssch = ObsScheduler(target_db = data_original, name_telescope = obsname, entire_night = True, duplicate_when_empty= False, date = date, autofocus_at_init= False)
-										logtbl = obssch.write_txt(filename_prefix =file_prefix, scheduled_only = False, format_ = 'ascii.fixed_width', savepath = f"{path_output}/",)
-										obssch.show(save= False, filename_prefix = file_prefix, savepath = f"{path_output}/",)
+										scheduler_grid = ObsScheduler(target_db = select_skygrid_cat,
+																		date = date,
+																		name_project = name_project,
+																		name_telescope = obsname,
+																		entire_night = False)
+
+										# Define target
+										scriptmaker_grid = ScriptMaker(scheduler_grid)
+										# Action
+										scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+										logtbl = scriptmaker_grid.result.scheduled
+
 										if site == 'SSO':
-											n_observable_KMTNet_SSO = len(obssch.target_observable)
+											n_observable_KMTNet_SSO = len(logtbl)
 										elif site == 'SAAO':
-											n_observable_KMTNet_SAAO = len(obssch.target_observable)
+											n_observable_KMTNet_SAAO = len(logtbl)
 										elif site == 'CTIO':
-											n_observable_KMTNet_CTIO = len(obssch.target_observable)
+											n_observable_KMTNet_CTIO = len(logtbl)
 										plt.close()
 
 										#	KMTNet Script Inputs
@@ -878,7 +998,7 @@ while True:
 					KMTNet_SSO {n_observable_KMTNet_SSO}
 					KMTNet_CTIO {n_observable_KMTNet_CTIO}
 					KMTNet_SAAO {n_observable_KMTNet_SAAO}"""
-					print(_summary_txt)
+					# print(_summary_txt)
 					text_list = []
 
 					cols = _summary_txt.split('\n')
@@ -892,11 +1012,16 @@ while True:
 						text_list.append(f'{c0:<{20}}{c1}')
 
 					summary_txt = '\n'.join(text_list)
-					print(summary_txt)
+					# print(summary_txt)
 
-					s = open(f"{path_output}/summary.txt", "w")
+					summary_file = f"{path_output}/summary.txt"
+					s = open(summary_file, "w")
 					s.write(summary_txt)
 					s.close()
+					if os.path.exists(summary_file):
+						os.system(f"cat {summary_file}")
+					else:
+						print(f"The Summary File {summary_file} does not exist")
 					
 					
 					# # Fin. ALERT!!!

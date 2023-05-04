@@ -1,0 +1,171 @@
+; Prepare for the observation (LSGT)
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	10:36:21	58:37:11
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	11:28:30	58:33:43
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	10:19:20	58:30:14
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	10:26:42	57:13:33
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	10:47:43	59:24:39
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	11:00:07	57:25:40
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:14:22	56:00:39
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:19:32	56:44:13
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:23:01	58:26:42
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	11:35:24	57:38:59
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:12:14	56:10:37
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	10:38:31	58:47:05
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:46:39	54:32:02
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:29:45	56:49:33
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	16:52:58	02:24:03
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	11:48:50	59:24:57
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:00:52	02:06:07
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	10:16:23	60:14:05
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:05:00	-1:32:27
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	10:13:39	59:26:02
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	16:48:18	06:18:43
+

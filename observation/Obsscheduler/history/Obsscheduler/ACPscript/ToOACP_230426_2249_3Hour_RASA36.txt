@@ -1,0 +1,60 @@
+; Prepare for the observation
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 18
+#interval 60
+#binning 1
+#filter r
+MS181101ab	13:11:27	-20:34:15
+
+#skippreviews 
+#filteroffsets
+#count 18
+#interval 60
+#binning 1
+#filter r
+MS181101ab	13:04:28	-15:25:44
+
+#skippreviews 
+#filteroffsets
+#count 18
+#interval 60
+#binning 1
+#filter r
+MS181101ab	13:20:00	-25:42:50
+
+#skippreviews 
+#filteroffsets
+#count 18
+#interval 60
+#binning 1
+#filter r
+MS181101ab	13:10:22	-18:00:00
+
+#skippreviews 
+#filteroffsets
+#count 18
+#interval 60
+#binning 1
+#filter r
+MS181101ab	13:21:17	-28:17:09
+
+#skippreviews 
+#filteroffsets
+#count 18
+#interval 60
+#binning 1
+#filter r
+MS181101ab	13:09:40	-28:17:09
+
+#skippreviews 
+#filteroffsets
+#count 18
+#interval 60
+#binning 1
+#filter r
+MS181101ab	12:49:27	-20:34:15
+
+#QUITAT 04/27/23 09:48:51

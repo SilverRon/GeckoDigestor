@@ -1,8 +1,8 @@
 event               MS181101ab_INITIAL
 trigger_time        2018-11-01T22:22:46.654Z
-process_start       2023-05-02T05:49:37.135Z
-process_time(sec)   71.4
-phase(day)          1642.3
+process_start       2023-05-02T23:58:20.789Z
+process_time(sec)   78.4
+phase(day)          1643.1
 classification      BNS(95%)
 distance(Mpc)       39.8+/-8.3
 area_90%(deg2)      31.0

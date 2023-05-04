@@ -305,14 +305,16 @@ def exptime_for_mag(m, depth, exptime0):
     return exptime
 
 def find_exposure_time(exp_min, obs_min, total_time, tolerence=10):
-    closest_time = float('inf')
-    closest_tuple = None
+	closest_time = float('inf')
+	closest_tuple = None
 
-    for n in range(obs_min, int(total_time // exp_min) + 1):
-        for t in range(exp_min, 301, 30):
-            exp_time = n * t
-            diff = abs(exp_time - total_time)
-            if diff < closest_time:
-                closest_time = diff
-                closest_tuple = (t, n)
-    return closest_tuple
+	for n in range(obs_min, int(total_time // exp_min) + 1):
+		for t in range(exp_min, 301, 30):
+			exp_time = n * t
+			diff = abs(exp_time - total_time)
+			if diff < closest_time:
+				closest_time = diff
+				closest_tuple = (t, n)
+	if closest_tuple == None:
+		closest_tuple = (exp_min, obs_min)
+	return closest_tuple
