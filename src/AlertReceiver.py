@@ -177,18 +177,21 @@ if __name__ == "__main__":
             # JSON 문자열을 파일로 저장
             with open(f'{path_output}/record.json', 'w') as file:
                 file.write(record_str)
+            eventlogtbl = Table.read(f"{path_out}/event.log", format='ascii.fixed_width')
             if record['alert_type'] == 'RETRACTION':
                 most_probable_event = 0.0
+                eventlogtbl.add_row(
+                    [record['superevent_id'], record['alert_type'], most_probable_event, 0.0, 0.0, 0.0, 0.0, 0.0, f"{record['superevent_id']}_{record['alert_type']}"]
+                )
+
             else:
                 most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
+                eventlogtbl.add_row(
+                    [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], f"{record['superevent_id']}_{record['alert_type']}"]
+                )
 
-            eventlogtbl = Table.read(f"{path_out}/event.log", format='ascii.fixed_width')
-            eventlogtbl.add_row(
-                [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], f"{record['superevent_id']}_{record['alert_type']}"]
-            )
-
-            for key in eventlogtbl.keys():
-                if key in ['ramax', 'decmax', 'area_90', 'distmean', 'diststd']:
-                    eventlogtbl[key].format = ".3f"
-                
+                for key in eventlogtbl.keys():
+                    if key in ['ramax', 'decmax', 'area_90', 'distmean', 'diststd']:
+                        eventlogtbl[key].format = ".3f"
+                    
             eventlogtbl.write(f"{path_out}/event.log", format='ascii.fixed_width', overwrite=True)

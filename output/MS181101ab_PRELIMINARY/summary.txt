@@ -1,7 +1,7 @@
 event               MS181101ab_PRELIMINARY
 trigger_time        2018-11-01T22:22:46.654Z
-process_start       2023-05-04T04:18:47.852Z
-process_time(sec)   79.2
+process_start       2023-05-04T13:16:39.939Z
+process_time(sec)   138.8
 phase(day)          1.0
 classification      BNS(95%)
 distance(Mpc)       39.8+/-8.3
@@ -22,9 +22,9 @@ expected_Kmag       18.1
 SAO                 0
 LOAO                55
 LSGT                58
-RASA36              17
-KCT                 25
-CBNUO               18
+RASA36              16
+KCT                 40
+CBNUO               25
 KMTNet_SSO          0
 KMTNet_CTIO         5
 KMTNet_SAAO         5

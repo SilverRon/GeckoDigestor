@@ -30,8 +30,9 @@ def plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title="", onl
 		markersize = 10
 	else:
 		markersize = 36
-	plt.scatter(simple_galcat['ra'], simple_galcat['dec'], c=simple_galcat[probkey], cmap='hot', edgecolors='k', s=markersize, zorder=10)
-	cbar_gal = plt.colorbar()
+	if only_center:
+		plt.scatter(simple_galcat['ra'], simple_galcat['dec'], c=simple_galcat[probkey], cmap='hot', edgecolors='k', s=markersize, zorder=10)
+		cbar_gal = plt.colorbar()
 
 	plt.scatter(skymap['RA'][cumprob<0.9], skymap['DEC'][cumprob<0.9], c=skymap['CUMPROBDENSITY'][cumprob<0.9], alpha=0.5)
 	# cbar = plt.colorbar()

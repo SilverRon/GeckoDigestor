@@ -122,12 +122,8 @@ while True:
 
 	if len(event_nolog_list):
 		for ee, event in enumerate(event_nolog_list):
-			# path_output = f"{path_out}/{record['superevent_id']}_{record['alert_type']}"
-			path_output = f"{path_out}/{event}"
-			path_record = f"{path_output}/record.json"
+			path_record = f"{path_out}/{event}/record.json"
 			if os.path.exists(path_record):
-				#	Define the path to save the results
-
 				with open(path_record, 'r') as f:
 					record = f.read()
 				record, skymap = AlertReceiver(record)
@@ -147,19 +143,19 @@ while True:
 				st = time.time()
 
 				# 새로 생성할 디렉토리 이름
-				# path_output = f"{path_out}/{record['superevent_id']}_{record['alert_type']}"
+				new_directory = f"{path_out}/{record['superevent_id']}_{record['alert_type']}"
 				# 디렉토리가 존재하지 않으면 생성
-				if not os.path.exists(path_output):
-					os.makedirs(path_output)
+				if not os.path.exists(new_directory):
+					os.makedirs(new_directory)
 				# 딕셔너리를 JSON 문자열로 변환
 				record_str = json.dumps(record)
 				# JSON 문자열을 파일로 저장
-				with open(f'{path_output}/record.json', 'w') as file:
+				with open(f'{new_directory}/record.json', 'w') as file:
 					file.write(record_str)
 
 				# if (record['alert_type'] == 'RETRACTION') & (skymap == None):
 				# if (record['alert_type'] != 'RETRACTION'):
-				write_skymap_to_fits(skymap, path_output=f"{path_output}/skymap.fits")
+				write_skymap_to_fits(skymap, path_output=f"{new_directory}/skymap.fits")
 
 
 				# %% [markdown]
@@ -178,6 +174,7 @@ while True:
 				# - Path
 
 				# %%
+				path_output = f"../output/{record['superevent_id']}_{record['alert_type']}"
 
 				# %% [markdown]
 				# # 2. Check a Singnificance
@@ -595,8 +592,8 @@ while True:
 					subsequent_days = obs_request_day
 					name_project = 'GECKO'
 					filename_prefix = 'GECKO_'
-					ACP_savepath = f"{path_output}/"
-					rts_savepath = f"{path_output}/"
+					ACP_savepath = path_output
+					rts_savepath = path_output
 					n_target_for_each_timeslot = 2
 					for i in range(subsequent_days):
 						#------------------------------------------------------------
@@ -740,6 +737,7 @@ while True:
 						print(f"{n_observable_SAO} SAO observations")
 						print("Done!\n")
 
+
 					# %% [markdown]
 					# # 4. sky grid matching
 					print(f"-"*60)
@@ -753,8 +751,140 @@ while True:
 					n_observable_KMTNet_CTIO = 0
 					n_observable_KMTNet_SAAO = 0
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					for obs in ['KCT', 'CBNUO', 'RASA36', 'KMTNet',]:
-						#
 						print(f"Generating Tiling Pattern for {obs}")
 
 						pointing_cat = Table.read(f'../data/skygrid/{obs}/displaycenter.txt', format='csv')
@@ -886,45 +1016,11 @@ while True:
 							#	Observation Request
 							if obs in ['RASA36', 'KCT', 'CBNUO']:
 								#
-								if obs == "KCT":
-									filte = 'r'
-									exptime0 = 10*60 # [sec]
-									depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
-									m = expected_magdict['r']
-									#	Minimum criteria
-									exp_min = 120
-									obs_min = 3
-								elif obs == "RASA36":
-									filte = 'r'
-									exptime0 = 10*60 # [sec]
-									depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
-									m = expected_magdict['r']
-									#	Minimum criteria
-									exp_min = 60
-									obs_min = 3
-								elif obs == "CBNUO":
-									filte = 'r'
-									exptime0 = 10*60 # [sec]
-									depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
-									m = expected_magdict['r']
-									#	Minimum criteria
-									exp_min = 180
-									obs_min = 3
-
-								total_exptime = exptime_for_mag(m, depth, exptime0)
-								exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-								print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
-								print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
-								#
-								_select_skygrid_cat = select_skygrid_cat.copy()
-								_select_skygrid_cat['exptime'] = f"{exp_time},{exp_time}"
-								_select_skygrid_cat['count'] = f"{obs_count},{obs_count}"
-								#
 								subsequent_days = obs_request_day
 								file_prefix ='GECKO_'
 								for i in range(subsequent_days):
 									scheduler_grid = ObsScheduler(
-										target_db= _select_skygrid_cat,
+										target_db= select_skygrid_cat,
 										date = date,
 										name_project = name_project,
 										name_telescope = obs,
@@ -965,35 +1061,14 @@ while True:
 									plt.close()
 									date += 1*u.day
 							elif obs == 'KMTNet':
-
-								filte = 'r'
-								exptime0 = 10*60 # [sec]
-								depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
-								m = expected_magdict['r']
-								#	Minimum criteria
-								exp_min = 120
-								obs_min = 2
-
-
-								total_exptime = exptime_for_mag(m, depth, exptime0)
-								exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-								print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
-								print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
-								#
-								_select_skygrid_cat = select_skygrid_cat.copy()
-								_select_skygrid_cat['exptime'] = f"{exp_time},{exp_time}"
-								_select_skygrid_cat['count'] = f"{obs_count},{obs_count}"
-
-
-
-								data_original = _select_skygrid_cat
+								data_original = select_skygrid_cat
 								cbands = ['B', 'R']
 								for i in range(subsequent_days):
 									date_str = f"{date.datetime.year}{date.datetime.month:0>2}{date.datetime.day:0>2}"
 
 									for site in ['SSO', 'SAAO', 'CTIO']:
 										obsname = f"KMTNet_{site}"
-										scheduler_grid = ObsScheduler(target_db = _select_skygrid_cat,
+										scheduler_grid = ObsScheduler(target_db = select_skygrid_cat,
 																		date = date,
 																		name_project = name_project,
 																		name_telescope = obsname,
@@ -1131,4 +1206,4 @@ while True:
 				eventlogtbl.write(f"{path_out}/event.log", format='ascii.fixed_width', overwrite=True)
 
 
-		time.sleep(TIME_TO_SLEEP)
+	time.sleep(TIME_TO_SLEEP)
