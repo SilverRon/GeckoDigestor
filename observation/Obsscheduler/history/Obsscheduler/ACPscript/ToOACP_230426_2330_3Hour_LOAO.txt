@@ -1,0 +1,268 @@
+; Prepare for the observation
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:44:46	54:52:33
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	13:05:55	53:39:32
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	16:52:58	02:24:03
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	13:14:46	53:49:12
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:00:52	02:06:07
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:42:52	54:51:21
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:05:00	-1:32:27
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	12:51:16	53:41:45
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:16:30	-6:14:34
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:13:24	-5:48:43
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	16:48:18	06:18:43
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:31:03	-8:25:40
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:12:33	-5:35:27
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:29:24	-12:07:48
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:29:24	-12:07:48
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:32:52	-10:40:58
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:35:42	-7:41:34
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:13:24	-5:48:43
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:35:40	-17:09:10
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:35:43	-7:20:52
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:01:51	-1:53:56
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:27:00	-12:42:39
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:08:07	-1:30:53
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:27:42	-11:34:44
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:04:56	-1:31:48
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:27:42	-11:34:44
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:34:46	-6:59:06
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:31:03	-8:25:40
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:14:10	-4:49:12
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:24:05	-3:04:22
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:30:31	-10:48:03
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:35:42	-7:41:34
+
+#skippreviews 
+#filteroffsets
+#count 3,3
+#interval 60,60
+#binning 2,2
+#filter B,R
+MS230426x	17:42:50	-9:43:26
+
+#QUITAT 04/27/23 11:11:50

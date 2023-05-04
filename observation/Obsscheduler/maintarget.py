@@ -52,6 +52,7 @@ class mainTarget(mainConfig):
     
     def __init__(self,
                  name_telescope : str,
+                 name_project : str,
                  observer : mainObserver,
                  target_ra : float = None,
                  target_dec : float = None,
@@ -60,7 +61,7 @@ class mainTarget(mainConfig):
                  target_name : str = '',
                  **kwargs):
         
-        super().__init__(name_telescope = name_telescope)
+        super().__init__(name_telescope = name_telescope, name_project = name_project)
         self._observer = observer
         self._astroplan_observer = observer.info['observer']
         self._constraints = self._get_constraints(**self.config)
@@ -88,8 +89,8 @@ class mainTarget(mainConfig):
         self.name = target_name
         #self.status = self.get_status()
         
-    def __repr__(self):
-        return f'Target[name={self.name}, ra[deg]={round(self.ra,4)}, dec[deg]={round(self.dec,4)}'
+    #def __repr__(self):
+    #    return f'Target[name={self.name}, ra[deg]={round(self.ra,4)}, dec[deg]={round(self.dec,4)}]'
 
     def get_status(self):
         """

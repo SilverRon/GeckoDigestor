@@ -15,18 +15,10 @@ class mainObserver(mainConfig):
 
     Parameters
     ==========
-    1. OBSERVER_LATITUDE : str
-        The latitude of the observer's location in degrees.
-    2. OBSERVER_LONGITUDE : str
-        The longitude of the observer's location in degrees.
-    3. OBSERVER_ELEVATION : str
-        The elevation of the observer's location in meters.
-    4. OBSERVER_TIMEZONE : str
-        The timezone of the observer's location, in the format 'Area/Location'.
-    5. OBSERVER_NAME : str, optional
-        The name of the observer.
-    6. OBSERVER_OBSERVATORY : str, optional
-        The name of the observatory.
+    1. name_telescope : str
+        telescope name (KCT, RASA36 ...)
+    2. name_project : str
+        project name (ToO, GECKO, IMSNG ...)
     **kwargs : optional
         Additional keyword arguments to pass to the Observer object.
 
@@ -68,7 +60,7 @@ class mainObserver(mainConfig):
                  **kwargs
                  ):
         
-        super().__init__(name_telescope = name_telescope, project = name_project)
+        super().__init__(name_telescope = name_telescope, name_project = name_project)
         self._name_telescope = name_telescope
         self._latitude = float(self.config['OBSERVER_LATITUDE'])*u.deg
         self._longitude = float(self.config['OBSERVER_LONGITUDE'])*u.deg

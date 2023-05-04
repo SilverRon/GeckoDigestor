@@ -1,0 +1,24 @@
+# KMTNet Observation script
+#  ProjectID     LABEL         RA          DEC     COPT  IMGTYP   OBJECT_NAME FILTER EXPTIME      UTOBS          UTTOL #Comments
+#------------ ----------- ----------- ---- -------- ------------ ------ ------- ------------------- ----- ---------
+
+TOO         MS181101ab-0   13:06:58.6   -24:53:37    0   OBJECT    MS181101ab     B     120                   -     0 #1
+TOO         MS181101ab-0   13:06:58.6   -24:53:37    0   OBJECT    MS181101ab     R     120                   -     0 #2
+TOO         MS181101ab-3   13:07:16.2   -24:46:37    0   OBJECT    MS181101ab     B     120                   -     0 #3
+TOO         MS181101ab-3   13:07:16.2   -24:46:37    0   OBJECT    MS181101ab     R     120                   -     0 #4
+TOO         MS181101ab-0   13:14:29.0   -22:58:43    0   OBJECT    MS181101ab     B     120                   -     0 #5
+TOO         MS181101ab-0   13:14:29.0   -22:58:43    0   OBJECT    MS181101ab     R     120                   -     0 #6
+TOO         MS181101ab-3   13:14:46.3   -22:51:43    0   OBJECT    MS181101ab     B     120                   -     0 #7
+TOO         MS181101ab-3   13:14:46.3   -22:51:43    0   OBJECT    MS181101ab     R     120                   -     0 #8
+TOO         MS181101ab-0   13:12:25.6   -26:48:31    0   OBJECT    MS181101ab     B     120                   -     0 #9
+TOO         MS181101ab-0   13:12:25.6   -26:48:31    0   OBJECT    MS181101ab     R     120                   -     0 #10
+TOO         MS181101ab-3   13:12:43.5   -26:41:31    0   OBJECT    MS181101ab     B     120                   -     0 #11
+TOO         MS181101ab-3   13:12:43.5   -26:41:31    0   OBJECT    MS181101ab     R     120                   -     0 #12
+TOO         MS181101ab-0   13:15:20.9   -24:53:37    0   OBJECT    MS181101ab     B     120                   -     0 #13
+TOO         MS181101ab-0   13:15:20.9   -24:53:37    0   OBJECT    MS181101ab     R     120                   -     0 #14
+TOO         MS181101ab-3   13:15:38.6   -24:46:37    0   OBJECT    MS181101ab     B     120                   -     0 #15
+TOO         MS181101ab-3   13:15:38.6   -24:46:37    0   OBJECT    MS181101ab     R     120                   -     0 #16
+TOO         MS181101ab-0   13:20:56.8   -26:48:31    0   OBJECT    MS181101ab     B     120                   -     0 #17
+TOO         MS181101ab-0   13:20:56.8   -26:48:31    0   OBJECT    MS181101ab     R     120                   -     0 #18
+TOO         MS181101ab-3   13:21:14.7   -26:41:31    0   OBJECT    MS181101ab     B     120                   -     0 #19
+TOO         MS181101ab-3   13:21:14.7   -26:41:31    0   OBJECT    MS181101ab     R     120                   -     0 #20

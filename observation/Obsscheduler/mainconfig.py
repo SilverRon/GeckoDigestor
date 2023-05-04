@@ -7,12 +7,12 @@ import json
 #%%
 class mainConfig:
     def __init__(self,
-                 project: str = 'ToO',
+                 name_project: str = 'ToO',
                  name_telescope : str = 'KCT',
                  **kwargs):
         self.name_telescope = name_telescope
-        self._project = project
-        configfilekey = os.path.dirname(__file__)+f'/config/{project}/{self.name_telescope}'+'/*.config',
+        self.name_project = name_project
+        configfilekey = os.path.dirname(__file__)+f'/config/{name_project}/{self.name_telescope}'+'/*.config',
         self._configfiles = glob.glob(configfilekey[0])
         if len(self._configfiles) == 0:
             print('No configuration file is found.\nTo make default configuration files, run tcspy.configuration.make_config')
@@ -30,7 +30,7 @@ class mainConfig:
 
     def _initialize_config(self,
                            savedir = f'{os.path.dirname(__file__)}'):
-        savepath = savedir + f'/config/{self._project}/{self.name_telescope}/'
+        savepath = savedir + f'/config/{self.name_project}/{self.name_telescope}/'
         if not os.path.exists(savepath):
             os.makedirs(savepath, exist_ok= True)
         def make_configfile(dict_params, 
@@ -48,11 +48,11 @@ class mainConfig:
                        OBSERVER_OBSERVATORY = self.name_telescope
                        )
         target_params = dict(TARGET_MINALT = 30,
-                             TARGET_MAXALT = 90,
+                             TARGET_MAXALT = 80,
                              TARGET_MAX_SUNALT = None,
                              TARGET_MOONSEP = 40,
                              TARGET_MAXAIRMASS = None,
-                             TARGET_MERIDIAN_SEC = 1800,
+                             TARGET_MERIDIAN_SEC = 600,
                              TARGET_MAXSLEW = 100,
                              
                              TARGET_WEIGHT_RELATIVE_ALT = 0.5,
@@ -66,28 +66,29 @@ class mainConfig:
                                OVERHEAD_SPEED_SLEWING = 5)
         
         scheduler_params = dict(SCHEDULER_AUTOFOCUS = True,
+                                SCHEDULER_AUTOFOCUS_AT_INIT = False,
                                 SCHEDULER_AFTIME = 3,
                                 SCHEDULER_CCDCOOL = True,
                                 SCHEDULER_CCDTEMP = -10,
                                 
-                                SCHEDULER_BIAS = True,
+                                SCHEDULER_BIAS = False,
                                 SCHEDULER_BIASCOUNT = 9,
                                 
-                                SCHEDULER_DARK = True,
-                                SCHEDULER_DARKCOUNT = 9,
+                                SCHEDULER_DARK = False,
                                 SCHEDULER_DARKEXPTIME = '120',
+                                SCHEDULER_DARKCOUNT = 9,
                                 
                                 SCHEDULER_FLAT_DUSK = False,
-                                SCHEDULER_FLAT_DAWN = True,
+                                SCHEDULER_FLAT_DAWN = False,
+                                SCHEDULER_FLATEXPTIME = '120',
                                 SCHEDULER_FLATCOUNT = 9,
-                                SCHEDULER_FLATEXPTIME = '120,120',
                                 SCHEDULER_FLATFILTSET = 'g,r',
                                 
                                 SCHEDULER_DEFAULTFILT = 'g,r',
                                 SCHEDULER_DEFAULTEXP = '120,120',
-                                SCHEDULER_DEFAULTBIN = '1,1',
                                 SCHEDULER_DEFAULTCOUNT = '5,5',
-                                SCHEDULER_DEFAULTPRIOR = 1
+                                SCHEDULER_DEFAULTBIN = '1,1',
+                                SCHEDULER_DEFAULTPRIOR = 1,
                                 )
 
         make_configfile(observer_params, filename = f'Observer_{self.name_telescope}.config')
@@ -97,9 +98,9 @@ class mainConfig:
 
 #%% Temporary running 
 if __name__ == '__main__':
-    telescope_list = ['KCT', 'RASA36', 'LSGT', 'CBNUO']
+    telescope_list = ['KCT', 'RASA36', 'LSGT', 'CBNUO', 'SAO']
+    telescope_list = ['KMTNet_CTIO', 'KMTNet_SAAO', 'KMTNet_SSO', 'LOAO']
     for telescope in telescope_list:
-        telescope = 'SAO'
         A = mainConfig(name_telescope = telescope, project= 'ToO')
         A._initialize_config()
 # %%

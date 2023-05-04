@@ -1,0 +1,147 @@
+; Prepare for the observation (LSGT)
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:17:57	-60:55:22
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:34:30	-67:18:43
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:14:00	-60:59:27
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:36:32	-79:39:10
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:26:35	-63:11:45
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:50:54	-61:48:46
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:15:03	-60:54:25
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:06:30	-67:43:01
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:15:46	-60:55:22
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:32:42	-64:49:58
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:28:46	-61:48:43
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:36:32	-79:39:10
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:11:36	-61:04:51
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:42:25	-68:54:03
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:13:56	-61:00:43
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:54:57	-72:35:13
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:21:46	-61:25:29
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230501j	16:44:16	-77:15:50
+

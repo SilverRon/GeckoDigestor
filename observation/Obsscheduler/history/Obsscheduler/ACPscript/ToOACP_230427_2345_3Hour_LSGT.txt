@@ -1,0 +1,244 @@
+; Prepare for the observation
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:29:24	-12:07:48
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:29:24	-12:07:48
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:25:25	-30:30:43
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:00:52	02:06:07
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:31:03	-8:25:40
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:38:04	-51:09:50
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:43:14	-51:48:25
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:13:24	-5:48:43
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:34:56	-52:55:29
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:16:30	-6:14:34
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:30:24	-34:16:26
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:05:00	-1:32:27
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:53:42	-24:09:57
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:32:52	-10:40:58
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:39:58	-51:03:25
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	17:35:42	-7:41:34
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:32:21	-33:40:19
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	20:01:08	-52:53:42
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:46:11	-41:24:21
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	20:09:35	-55:42:32
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:34:13	-34:59:20
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	20:36:34	-57:37:22
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:26:28	-31:33:00
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:38:21	-50:39:14
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:32:41	-34:11:27
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	20:46:39	-58:41:09
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:15:30	-45:29:49
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:21:35	-48:47:16
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	18:39:35	-35:41:23
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230426x	19:28:28	-53:22:19
+
+#QUITAT 04/27/23 19:10:08

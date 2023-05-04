@@ -1,0 +1,76 @@
+; Prepare for the observation
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	21:56:00	-1:31:01
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	22:16:51	-9:00:39
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	22:01:26	-5:25:58
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	22:50:21	-20:21:03
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	22:00:51	-1:50:20
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	22:31:58	-15:26:23
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	21:56:02	-2:53:59
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	22:25:46	-13:09:57
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230429c	21:50:42	00:54:43
+
+#QUITAT 05/02/23 19:12:57

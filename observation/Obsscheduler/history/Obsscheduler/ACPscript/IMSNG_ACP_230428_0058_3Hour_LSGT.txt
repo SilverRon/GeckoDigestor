@@ -1,0 +1,139 @@
+; Prepare for the observation (LSGT)
+
+; Targeting
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	14:48:43	-43:55:37
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	17:37:54	-55:31:04
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	15:08:22	-48:18:57
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	17:35:43	-56:42:32
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	14:02:18	-38:50:20
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	19:14:37	-54:13:40
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:46:24	-37:58:15
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	19:12:42	-53:52:26
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:25:50	-32:08:52
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:33:52	-33:00:50
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:30:40	-31:40:19
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:39:38	-35:36:32
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:31:44	-29:48:25
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:38:59	-32:36:03
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:26:20	-31:27:57
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:33:34	-31:40:19
+
+#skippreviews 
+#filteroffsets
+#count 3
+#interval 180
+#binning 1
+#filter r
+MS230413s	13:47:44	-34:58:08
+
