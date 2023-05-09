@@ -187,7 +187,7 @@ if __name__ == "__main__":
             else:
                 most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
                 eventlogtbl.add_row(
-                    [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], skymap['DISTMEAN'], skymap['DISTSTD'], f"{record['superevent_id']}_{record['alert_type']}"]
+                    [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], f"{record['superevent_id']}_{record['alert_type']}"]
                 )
 
                 for key in eventlogtbl.keys():
