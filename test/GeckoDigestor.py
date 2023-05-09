@@ -188,7 +188,7 @@ while True:
 				# %%
 				gecko_digestor_trigger = False
 				em_counterpart = False
-				confidence_limit = 0.0 # 0-1 [%]
+				confidence_limit = 0.9 # 0-1 [%]
 				obs_request_day = 0
 				# gecko_priority: int = 0
 
@@ -444,6 +444,29 @@ while True:
 					# %%
 					indx_vol90 = np.where(cat['searched_prob_vol']<confidence_limit)
 					select_cat = cat[indx_vol90]
+					#	Check bad matching
+					if len(select_cat) == len(cat):
+						print(f"Detected bad matching.")
+						print(f"{len(select_cat)} galaxies matched (whole GLADE+ catalog)")
+						indx_tmp = np.where(
+							(select_cat['col33']<distmean+diststd) &
+							(select_cat['col33']>distmean-diststd) &
+							(select_cat['col9']<ramax) &
+							(select_cat['col9']>ramin) &
+							(select_cat['col10']<decmax) &
+							(select_cat['col10']>decmin)
+							)
+						select_cat = select_cat[indx_tmp]
+						if os.path.exists(f"{path_output}/note.txt"):
+							#	add
+							write_mode = "a"
+						else:
+							#	write new one
+							write_mode = "w"
+						f = open(f"{path_output}/note.txt", write_mode)
+						f.write(f"\nDetected bad matching\n")
+						f.close()
+
 					#	Stellar mass
 					select_cat['stellar_mass'] = select_cat['col36']
 					select_cat['flag_stmass'] = ~select_cat['col36'].mask
@@ -471,6 +494,9 @@ while True:
 					simple_galcat['prob_vol'] = select_cat['prob_vol']
 					simple_galcat['stmass'] = select_cat['stellar_mass']
 					simple_galcat[probkey] = select_cat[probkey]
+					#	To prevent all values from being NaN.
+					simple_galcat['prob_vol_x_stmass'] = np.nan_to_num(simple_galcat['prob_vol_x_stmass'], nan=0)
+
 					#	Sort by prob --> rank
 					simple_galcat = simple_galcat[np.flipud(np.argsort(simple_galcat[probkey]))]
 					simple_galcat['rank'] = np.arange(len(simple_galcat), dtype=int)
@@ -813,10 +839,11 @@ while True:
 
 							title = f"{record['alert_type']}: {area_90.to_value(u.deg**2):.1f} "+r"$\rm deg^2$ "+f"for {obs}"
 							plt.subplot(121)
-							if area_90.to(u.deg**2).value>50:
-								only_center=True
-							else:
-								only_center=False
+							# if area_90.to(u.deg**2).value>50:
+							# 	only_center=True
+							# else:
+							# 	only_center=False
+							only_center=True
 							plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title=title, only_center=only_center, probkey=probkey)
 							xl, xr = plt.xlim()
 							plt.xlim([xr, xl])

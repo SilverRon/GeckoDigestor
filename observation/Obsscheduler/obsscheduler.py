@@ -923,7 +923,8 @@ class ScriptMaker(mainConfig):
         
         scheduled_table = self.obsdata.schedule.scheduled
         if len(scheduled_table) > 0:
-            target_table = Table().from_pandas(scheduled_table.to_pandas().dropna(subset = ['ra']))
+            target_table = Table().from_pandas(scheduled_table.to_pandas())
+            target_table = target_table[target_table['id'] != '']
             if len(target_table) > 0:
             
                 # Set observing time 
@@ -971,6 +972,7 @@ class ScriptMaker(mainConfig):
                                     f.write('#filter {}\n'.format(filter_))
                                     f.write('{}\t{}\t{}\n'.format(name,ra,dec))
                                     f.write('\n')
+                            print(f'[write_ACPscript_LSGT] SAVED! filename : {filename}')
                     else:
                         idx = (timecut < target_table['obs_start'])
                         split_table = target_table[idx]
@@ -997,7 +999,8 @@ class ScriptMaker(mainConfig):
                                     f.write('{}\t{}\t{}\n'.format(name,ra,dec))
                                     f.write('\n')
                                 f.write('#QUITAT {}\n'.format(time_astronomical_dawn_form))
-                    print(f'[write_ACPscript_LSGT] SAVED! filename : {filename}')
+                            print(f'[write_ACPscript_LSGT] SAVED! filename : {filename}')
+                    
             else:
                 print('[write_ACPscript_LSGT] FAILED! No observable Target.')
 
@@ -1068,7 +1071,8 @@ class ScriptMaker(mainConfig):
                 #f.write('#AFINTERVAL {}\n'.format(self.obsdata.config['SCHEDULER_AFTIME'])) # AF every 3 hrs
                 
                 f.write('\n; Targeting\n')
-                target_table = Table().from_pandas(scheduled_table.to_pandas().dropna(subset = ['ra']))
+                target_table = Table().from_pandas(scheduled_table.to_pandas())
+                target_table = target_table[target_table['id'] != '']
                 for target in target_table:
                     if target['obj'] == 'autofocus':
                         f.write('\n#AUTOFOCUS\n')
@@ -1722,13 +1726,14 @@ if __name__ == '__main__':
 #%% SAMPLE (IMSNG)
 if __name__ == '__main__':
     ####################### KCT (IMSNG)
-    date = Time.now()
+    date = Time.now() +5*u.day
     ACP_savepath = f'./IMSNG/'
     name_telescope = 'KCT'
     name_project = 'IMSNG'
     filename_prefix = 'IMSNG_'
     duplicate_when_empty = True
     data = ascii.read('./alltarget_prior2.dat', format = 'fixed_width')
+    data['weight'] = data['priority']
 
     """
     Input
@@ -1750,7 +1755,7 @@ if __name__ == '__main__':
     scriptmaker_host.write_log(n_target = 300, sort_keyword = 'priority', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
     scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
 
-
+    '''
     ######################## LSGT (IMSNG)
     date = Time.now()
     ACP_savepath = f'./ACPscript/'
@@ -1808,3 +1813,5 @@ if __name__ == '__main__':
     scriptmaker_host.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = True, duplicate_when_empty= duplicate_when_empty)
     scriptmaker_host.write_log(n_target = 300, sort_keyword = 'priority', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
     scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+    '''
+# %%

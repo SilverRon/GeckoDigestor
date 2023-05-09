@@ -513,11 +513,9 @@ class ObsScheduler(mainConfig):
     
     def _get_moonsep(self,
                         obs_tbl : Table):
-        
         all_coords = obs_tbl['coord']
-        all_target_altaz = self.obsinfo.observer_astroplan.altaz(self.obsnight.midnight, target = all_coords)
-        moon_altaz = self.obsinfo.observer_astroplan.altaz(self.obsnight.midnight, target = self.obsinfo.moon_radec)
-        moonsep = np.array(SkyCoord.separation(all_target_altaz, moon_altaz).value).round(2)
+        moon_coord = SkyCoord(ra =self.obsinfo.moon_radec.ra.value, dec = self.obsinfo.moon_radec.dec.value, unit = 'deg')
+        moonsep = np.array(SkyCoord.separation(all_coords, moon_coord).value).round(2)
         return moonsep
     
     def _get_maxaltaz(self,
@@ -528,21 +526,19 @@ class ObsScheduler(mainConfig):
         all_mainTarget = mainTarget(name_telescope = self.name_telescope, name_project = self.name_project, observer = self.observer, target_ra = all_ra, target_dec = all_dec)
         all_time_hourangle = all_mainTarget.hourangle(self.obsnight.midnight)
         all_hourangle_converted = [hourangle if (hourangle -12 < 0) else hourangle-24 for hourangle in all_time_hourangle.value]
+        all_target_altaz_at_sunset = all_mainTarget.altaz(utctimes=self.obsnight.sunset_astro)
+        all_target_altaz_at_sunrise = all_mainTarget.altaz(utctimes=self.obsnight.sunrise_astro)
         all_transittime = self.obsnight.midnight - all_hourangle_converted * u.hour
         all_maxalt = []
-        for target_time_transit, target_coord in zip(all_transittime, all_coords):
-            if target_time_transit < self.obsnight.sunset_astro:
-                maxaltaz = self.obsinfo.observer_astroplan.altaz(self.obsnight.sunset_astro, target = target_coord)
-                maxalt = np.round(maxaltaz.alt.value,2)
-                #maxaz = np.round(maxaltaz.az.value,2)
-            elif target_time_transit > self.obsnight.sunrise_astro:
-                maxaltaz = self.obsinfo.observer_astroplan.altaz(self.obsnight.sunrise_astro, target = target_coord)
-                maxalt = np.round(maxaltaz.alt.value,2)
-                #maxaz = np.round(maxaltaz.az.value,2)
-            else:
+        for i, target_info in enumerate(zip(all_transittime, all_coords)):
+            target_time_transit, target_coord = target_info
+            if (target_time_transit > self.obsnight.sunset_astro) & (target_time_transit < self.obsnight.sunrise_astro):
                 maxaltaz = self.obsinfo.observer_astroplan.altaz(target_time_transit, target = target_coord)
                 maxalt = np.round(maxaltaz.alt.value,2)
-                #maxaz = np.round(maxaltaz.az.value,2)
+            else:
+                sunset_alt = all_target_altaz_at_sunset[i].alt.value
+                sunrise_alt = all_target_altaz_at_sunrise[i].alt.value
+                maxalt = np.max([sunset_alt, sunrise_alt])
             all_maxalt.append(maxalt)
         return all_transittime, all_maxalt
         
@@ -559,6 +555,7 @@ class ObsScheduler(mainConfig):
         obs_tbl['fraction_obs'] = observability_tbl['fraction of time observable']
         key = observability_tbl['fraction of time observable'] > fraction_observable
         obs_tbl = obs_tbl[key]
+        
         return obs_tbl
         
     def _set_obs_info(self):
@@ -708,7 +705,6 @@ class ScriptMaker(mainConfig):
     
     def __init__(self, 
                  ObsScheduler):
-        # super().__init__()
         self.obsdata = ObsScheduler
     
     @property 
@@ -1181,10 +1177,10 @@ class ScriptMaker(mainConfig):
 if __name__ == '__main__':
     dirlist = os.listdir('../Archive/')
     dirlist.sort()
-    target = dirlist[-2]
+    target = dirlist[1]
     name_project = 'GECKO'
     filename_prefix = 'ToO_'
-    date = Time.now()
+    date = Time('2018-11-01')
     log_savepath = './log/'
     # ACP config
     ACP_savepath = f'./ACPscript/{target}/'
@@ -1269,6 +1265,8 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
     
     
     #######################
@@ -1376,6 +1374,8 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
     
     
     ####################### 
@@ -1430,7 +1430,8 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
-
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
 
     ####################### 
     # CBNUO (2x RTS)
@@ -1484,6 +1485,9 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
+    
     
     ####################### 
     # SAO (2x RTS)
@@ -1537,6 +1541,8 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
     
     
     #######################
@@ -1593,6 +1599,8 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
 
 
     ####################### 
@@ -1649,6 +1657,9 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
+    
     
     ######################## 
     # SSO (1x RTS)
@@ -1704,14 +1715,17 @@ if __name__ == '__main__':
         plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
         plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
+    maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
+    maintarget.staralt(utctime = date)
+    
 
 #%% SAMPLE (IMSNG)
 if __name__ == '__main__':
     ####################### KCT (IMSNG)
     date = Time.now()
-    ACP_savepath = f'./ACPscript/'
+    ACP_savepath = f'./IMSNG/'
     name_telescope = 'KCT'
-    project = 'IMSNG'
+    name_project = 'IMSNG'
     filename_prefix = 'IMSNG_'
     duplicate_when_empty = True
     data = ascii.read('./alltarget_prior2.dat', format = 'fixed_width')
@@ -1726,7 +1740,7 @@ if __name__ == '__main__':
     """
     scheduler_host = ObsScheduler(target_db= data,
                                         date = date,
-                                        project = project,
+                                        name_project = name_project,
                                         name_telescope = name_telescope,
                                         entire_night = True)
     # Define target
@@ -1735,7 +1749,8 @@ if __name__ == '__main__':
     scriptmaker_host.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = True, duplicate_when_empty= duplicate_when_empty)
     scriptmaker_host.write_log(n_target = 300, sort_keyword = 'priority', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
     scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-#%%
+
+
     ######################## LSGT (IMSNG)
     date = Time.now()
     ACP_savepath = f'./ACPscript/'
@@ -1755,7 +1770,7 @@ if __name__ == '__main__':
     """
     scheduler_host = ObsScheduler(target_db= data,
                                         date = date,
-                                        project = project,
+                                        name_project = name_project,
                                         name_telescope = name_telescope,
                                         entire_night = True)
     # Define target
@@ -1784,7 +1799,7 @@ if __name__ == '__main__':
     """
     scheduler_host = ObsScheduler(target_db= data,
                                         date = date,
-                                        project = project,
+                                        name_project = name_project,
                                         name_telescope = name_telescope,
                                         entire_night = True)
     # Define target
