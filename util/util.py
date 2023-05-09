@@ -27,11 +27,12 @@ def plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title="", onl
 	# fig = plt.figure(figsize=(10, 8))
 	#	Galaxy
 	if only_center:
-		markersize = 10
+		markersize = 6
 	else:
 		markersize = 36
 	if only_center:
-		plt.scatter(simple_galcat['ra'], simple_galcat['dec'], c=simple_galcat[probkey], cmap='hot', edgecolors='k', s=markersize, zorder=10)
+		indx_sort = np.argsort(simple_galcat[probkey])
+		plt.scatter(simple_galcat['ra'][indx_sort], simple_galcat['dec'][indx_sort], c=simple_galcat[probkey][indx_sort], cmap='hot', edgecolors='k', s=markersize, alpha=0.75, zorder=10)
 		cbar_gal = plt.colorbar()
 
 	plt.scatter(skymap['RA'][cumprob<0.9], skymap['DEC'][cumprob<0.9], c=skymap['CUMPROBDENSITY'][cumprob<0.9], alpha=0.5)
