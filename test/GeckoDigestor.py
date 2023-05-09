@@ -655,7 +655,7 @@ while True:
 								date = date,
 								name_project = name_project,
 								name_telescope = name_telescope,
-								entire_night = False
+								entire_night = True
 								)
 							# Define target
 							scriptmaker_host = ScriptMaker(scheduler_host)
@@ -701,7 +701,7 @@ while True:
 								date = date,
 								name_project = name_project,
 								name_telescope = name_telescope,
-								entire_night = False
+								entire_night = True
 								)
 							# Define target
 							scriptmaker_host = ScriptMaker(scheduler_host)
@@ -733,7 +733,7 @@ while True:
 						exp_min = 120
 						obs_min = 3
 						total_exptime = exptime_for_mag(m, depth, exptime0)
-						if total_exptime > EXPTIME_LIMIT_SMNET:
+						if total_exptime < EXPTIME_LIMIT_SMNET:
 							exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
 							print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
 							print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
@@ -749,7 +749,7 @@ while True:
 								date = date,
 								name_project = name_project,
 								name_telescope = name_telescope,
-								entire_night = False
+								entire_night = True
 								)
 							# Define target
 							scriptmaker_host = ScriptMaker(scheduler_host)
@@ -955,7 +955,7 @@ while True:
 										date = date,
 										name_project = name_project,
 										name_telescope = obs,
-										entire_night = False
+										entire_night = True
 										)
 
 									if obs == 'RASA36':
@@ -1024,7 +1024,7 @@ while True:
 																		date = date,
 																		name_project = name_project,
 																		name_telescope = obsname,
-																		entire_night = False)
+																		entire_night = True)
 
 										# Define target
 										scriptmaker_grid = ScriptMaker(scheduler_grid)
