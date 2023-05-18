@@ -470,7 +470,11 @@ while True:
 					#	Stellar mass
 					select_cat['stellar_mass'] = select_cat['col36']
 					select_cat['flag_stmass'] = ~select_cat['col36'].mask
-					select_cat['stellar_mass'][select_cat['col36'].mask] = np.min(select_cat['col36'])
+					#	Check size of masked rows
+					if select_cat['stellar_mass'][select_cat['col36'].mask].size:
+						pass
+					else:
+						select_cat['stellar_mass'][select_cat['col36'].mask] = np.min(select_cat['col36'])
 					#	Extra probability
 					select_cat['prob_vol_x_stmass'] = min_max_normalize(select_cat['stellar_mass']*select_cat['prob_vol'])
 
