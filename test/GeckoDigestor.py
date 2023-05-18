@@ -134,16 +134,7 @@ while True:
 
 				most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
 
-				#	Superevent?
-				if "S" == record['superevent_id'][0:1]:
-					print("This is a superevent")
-					slack = True
-				elif "MS" == record['superevent_id'][0:2]:
-					slack = False
-					print("This is not a superevent")
-				else:
-					slack = True
-					print("I don't know what this is")
+
 				st = time.time()
 
 				# 새로 생성할 디렉토리 이름
@@ -201,7 +192,20 @@ while True:
 
 				# %%
 				# if record['event']['significant']:
-				if record['alert_type'] in ['EARLYWARNING','PRELIMINARY','INITIAL','UPDATE','RETRACTION']:
+				#	Superevent?
+				if "S" == record['superevent_id'][0:1]:
+					print("This is a superevent")
+					slack = True
+					gecko_digestor_trigger = True
+				elif "MS" == record['superevent_id'][0:2]:
+					slack = False
+					gecko_digestor_trigger = False
+					print("This is not a superevent")
+				else:
+					slack = True
+					gecko_digestor_trigger = False
+					print("I don't know what this is")
+				if (gecko_digestor_trigger) & (record['alert_type'] in ['EARLYWARNING','PRELIMINARY','INITIAL','UPDATE','RETRACTION']):
 					#============================================================
 					#	Designated alert type
 					#============================================================
@@ -1070,7 +1074,7 @@ while True:
 					process_time(sec) {delt:.1f}
 					phase(day) {phase:1.1f}
 					classification {most_probable_event}({most_probable_event_prob*1e2:g}%)
-					distance(Mpc) {record['distmean']:.1f}+/-{record['diststd']:.1f}
+					distance(Mpc) {distmean:.1f}+/-{diststd:.1f}
 					area_90%(deg2) {area_90.to(u.deg**2).value:.1f}
 					radec_max(deg) {ramax:1.3f},{decmax:1.3f}
 					radec_max(hmsdms) {ra_hms},{dec_dms}
