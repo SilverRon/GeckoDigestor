@@ -130,7 +130,51 @@ while True:
 
 				with open(path_record, 'r') as f:
 					record = f.read()
-				record, skymap = AlertReceiver(record)
+				# record, skymap = AlertReceiver(record)
+				#============================================================
+				record = json.loads(record)
+				# Respond only to 'CBC' events. Change 'CBC' to 'Burst' to respond to
+				# only unmodeled burst events.
+				print(f"="*60)
+				print(f"EVENT: {record['superevent_id']}-{record['alert_type']}")
+				print(f"="*60)
+				# Parse sky map
+				# skymap_str = record.get('event', {}).pop('skymap')
+				skymap_str = record['event']['skymap']
+				if skymap_str:
+					# Decode, parse skymap, and print most probable sky location
+					skymap_bytes = b64decode(skymap_str)
+					skymap = Table.read(BytesIO(skymap_bytes))
+
+					level, ipix = ah.uniq_to_level_ipix(
+						skymap[np.argmax(skymap['PROBDENSITY'])]['UNIQ']
+					)
+					ra, dec = ah.healpix_to_lonlat(ipix, ah.level_to_nside(level),
+												order='nested')
+					print(f'Most probable sky location (RA, Dec) = ({ra.deg:.3f}, {dec.deg:.3f})')
+
+					# Print some information from FITS header
+					print(f'Distance = {skymap.meta["DISTMEAN"]:.1f} +/- {skymap.meta["DISTSTD"]:.1f} Mpc')
+
+					#   Calculate the area of the skymap
+					skymap.sort('PROBDENSITY', reverse=True)
+					level, ipix = ah.uniq_to_level_ipix(skymap['UNIQ'])
+					pixel_area = ah.nside_to_pixel_area(ah.level_to_nside(level))
+					prob = pixel_area * skymap['PROBDENSITY']
+					cumprob = np.cumsum(prob)
+					i = cumprob.searchsorted(0.9)
+					area_90 = pixel_area[:i].sum()
+					print(f"Area = {area_90.to(u.deg**2).value:.1f} deg2")
+
+					#   Put additional information to the record
+					record['ramax'] = ra.deg
+					record['decmax'] = dec.deg
+					record['area_90'] = area_90.to_value(u.deg**2)
+					record['distmean'] = skymap.meta['DISTMEAN']
+					record['diststd'] = skymap.meta['DISTSTD']
+
+					print(f"-"*60)
+				#============================================================
 
 				most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
 
@@ -150,7 +194,7 @@ while True:
 
 				# if (record['alert_type'] == 'RETRACTION') & (skymap == None):
 				# if (record['alert_type'] != 'RETRACTION'):
-				write_skymap_to_fits(skymap, path_output=f"{path_output}/skymap.fits")
+				# write_skymap_to_fits(skymap, path_output=f"{path_output}/skymap.fits")
 
 
 				# %% [markdown]
