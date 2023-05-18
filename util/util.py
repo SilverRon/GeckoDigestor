@@ -30,7 +30,7 @@ def plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title="", onl
 		markersize = 6
 	else:
 		markersize = 36
-	if only_center:
+	if not only_center:
 		indx_sort = np.argsort(simple_galcat[probkey])
 		plt.scatter(simple_galcat['ra'][indx_sort], simple_galcat['dec'][indx_sort], c=simple_galcat[probkey][indx_sort], cmap='hot', edgecolors='k', s=markersize, alpha=0.75, zorder=10)
 		cbar_gal = plt.colorbar()

@@ -1,7 +1,7 @@
 event               S230518h_PRELIMINARY
 trigger_time        2023-05-18T12:59:08.167Z
-process_start       2023-05-18T14:20:21.906Z
-process_time(sec)   531.5
+process_start       2023-05-18T15:36:41.284Z
+process_time(sec)   6138.3
 phase(day)          0.1
 classification      NSBH(86.4265%)
 distance(Mpc)       275.5+/-78.9
@@ -25,6 +25,6 @@ LSGT                14
 RASA36              1
 KCT                 9
 CBNUO               0
-KMTNet_SSO          2
-KMTNet_CTIO         2
-KMTNet_SAAO         3
+KMTNet_SSO          118
+KMTNet_CTIO         115
+KMTNet_SAAO         120
