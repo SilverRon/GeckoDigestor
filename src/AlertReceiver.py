@@ -45,12 +45,12 @@ def AlertReceiver(record):
     # conditional to only parse real events.
     # if record['superevent_id'][0] != 'S':
     #    return
-    if record['superevent_id'][0] != 'M':
-        return record, None
+    # if record['superevent_id'][0] != 'M':
+    #     return record, None
 
-    if record['alert_type'] == 'RETRACTION':
-        print(record['superevent_id'], 'was retracted')
-        return record, None
+    # if record['alert_type'] == 'RETRACTION':
+    #     print(record['superevent_id'], 'was retracted')
+    #     return record, None
 
     # Respond only to 'CBC' events. Change 'CBC' to 'Burst' to respond to
     # only unmodeled burst events.
@@ -188,9 +188,14 @@ if __name__ == "__main__":
 
                 else:
                     most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
-                    eventlogtbl.add_row(
-                        [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], f"{record['superevent_id']}_{record['alert_type']}"]
-                    )
+                    try:
+                        eventlogtbl.add_row(
+                            [record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], f"{record['superevent_id']}_{record['alert_type']}"]
+                        )
+                    except:
+                        eventlogtbl.add_row(
+                            [record['superevent_id'], record['alert_type'], most_probable_event, 0.0, 0.0, 0.0, 0.0, 0.0, f"{record['superevent_id']}_{record['alert_type']}"]
+                        )
 
                     for key in eventlogtbl.keys():
                         if key in ['ramax', 'decmax', 'area_90', 'distmean', 'diststd']:

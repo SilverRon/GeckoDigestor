@@ -1066,7 +1066,8 @@ while True:
 
 
 								data_original = _select_skygrid_cat
-								cbands = ['B', 'R']
+								# cbands = ['B', 'R']
+								cbands = ['R']
 								for i in range(subsequent_days):
 									date_str = f"{date.datetime.year}{date.datetime.month:0>2}{date.datetime.day:0>2}"
 
