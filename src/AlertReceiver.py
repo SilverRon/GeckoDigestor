@@ -62,7 +62,7 @@ def AlertReceiver(record):
     # Parse sky map
     # skymap_str = record.get('event', {}).pop('skymap')
     skymap_str = record['event']['skymap']
-    if skymap_str:
+    if (skymap_str) & (skymap_str != None):
         # Decode, parse skymap, and print most probable sky location
         skymap_bytes = b64decode(skymap_str)
         skymap = Table.read(BytesIO(skymap_bytes))
