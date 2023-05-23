@@ -65,7 +65,7 @@ def AlertReceiver(record):
     # if (record['event']['skymap'] != None):
     # if record is not None and 'event' in record and 'skymap' in record['event']:
     # if record is not None and 'event' in record:
-    if record is not None:
+    if {record['alert_type']} != 'RETRACTION':
 
         skymap_str = record['event']['skymap']
         # Decode, parse skymap, and print most probable sky location
