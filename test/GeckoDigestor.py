@@ -133,6 +133,9 @@ while True:
 				# record, skymap = AlertReceiver(record)
 				#============================================================
 				record = json.loads(record)
+
+				# if (record['distmean']<1000) & (record['area_90']<10000):
+
 				# Respond only to 'CBC' events. Change 'CBC' to 'Burst' to respond to
 				# only unmodeled burst events.
 				print(f"="*60)
@@ -654,534 +657,535 @@ while True:
 					plt.savefig(f"{path_output}/cumulative_p3d_HostGalaxy.png", dpi=100,)
 					plt.close()
 					#%%
-					#============================================================
-					#	Galaxy-targeted observation
-					#------------------------------------------------------------
-					#	LSGT, LOAO, KOREA FACILITIES, ...
-					#============================================================
-					print(f"-"*60)
-					print("Galaxy-targeted observation")
-					print(f"-"*60)
-
-					target_db = simple_galcat
-
-					if record['superevent_id'] == 'MS181101ab':
-						date = Time('2023-04-01T00:00:05.000000', format='isot')
-						print("This is an MS181101ab event for test the pipeline")
-					else:
-						date = Time.now()
-					subsequent_days = obs_request_day
-					name_project = 'GECKO'
-					filename_prefix = 'GECKO_'
-					ACP_savepath = f"{path_output}/"
-					rts_savepath = f"{path_output}/"
-					n_target_for_each_timeslot = 2
-					for i in range(subsequent_days):
+					if (record['distmean'] < 1_000) & (record['area_90'] < 15_000):
+						#============================================================
+						#	Galaxy-targeted observation
 						#------------------------------------------------------------
-						#	LSGT
-						#------------------------------------------------------------
-						name_telescope = 'LSGT'
-						print(f"Generating Target List for {name_telescope}")
+						#	LSGT, LOAO, KOREA FACILITIES, ...
+						#============================================================
+						print(f"-"*60)
+						print("Galaxy-targeted observation")
+						print(f"-"*60)
 
-						filte = 'r'
-						exptime0 = 10*60 # [sec]
-						depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
-						m = expected_magdict['r']
-						#	Minimum criteria
-						exp_min = 60
-						obs_min = 3
-						total_exptime = exptime_for_mag(m, depth, exptime0)
-						if total_exptime < EXPTIME_LIMIT_SMNET:
-							exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-							print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
-							print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
-							#
-							_simple_galcat = simple_galcat.copy()
-							# _simple_galcat['exptime'] = f"{exp_time},{exp_time}"
-							# _simple_galcat['count'] = f"{obs_count},{obs_count}"
-							_simple_galcat['exptime'] = f"{exp_time}"
-							_simple_galcat['count'] = f"{obs_count}"
-							#
-							scheduler_host = ObsScheduler(
-								target_db=_simple_galcat,
-								date = date,
-								name_project = name_project,
-								name_telescope = name_telescope,
-								entire_night = True
-								)
-							# Define target
-							scriptmaker_host = ScriptMaker(scheduler_host)
-							# Action
-							scriptmaker_host.write_ACPscript_LSGT(filename_prefix=filename_prefix, savepath = ACP_savepath, period_script= 3)
-							scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-							# logtbl = scriptmaker_host.result.scheduled
-							# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
-							scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-							n_observable_LSGT = len(scriptmaker_host.result.scheduled)
+						target_db = simple_galcat
+
+						if record['superevent_id'] == 'MS181101ab':
+							date = Time('2023-04-01T00:00:05.000000', format='isot')
+							print("This is an MS181101ab event for test the pipeline")
 						else:
-							n_observable_LSGT = 0
-							print(f"Total Exposure Time ({total_exptime:1.1f} sec) exceeds EXPTIME_LIMIT_SNET {EXPTIME_LIMIT_SMNET} sec")
-						print(f"{n_observable_LSGT} LSGT observations")
-						print("Done!\n")
-						#------------------------------------------------------------
-						#	LOAO
-						#------------------------------------------------------------
-						name_telescope = 'LOAO'
-						print(f"Generating Target List for {name_telescope}")
-						
-						filte = 'r'
-						exptime0 = 10*60 # [sec]
-						depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
-						m = expected_magdict['r']
-						#	Minimum criteria
-						exp_min = 60
-						obs_min = 3
-						total_exptime = exptime_for_mag(m, depth, exptime0)
-						if total_exptime < EXPTIME_LIMIT_SMNET:
-							exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-							print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
-							print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
-							#
-							_simple_galcat = simple_galcat.copy()
-							_simple_galcat['exptime'] = f"{exp_time}"
-							_simple_galcat['count'] = f"{obs_count}"
-							# _simple_galcat['exptime'] = f"{exp_time},{exp_time}"
-							# _simple_galcat['count'] = f"{obs_count},{obs_count}"
-							#
-							scheduler_host = ObsScheduler(
-								target_db= _simple_galcat,
-								date = date,
-								name_project = name_project,
-								name_telescope = name_telescope,
-								entire_night = True
-								)
-							# Define target
-							scriptmaker_host = ScriptMaker(scheduler_host)
-							# Action
-							scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-							scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-							scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-
-							# logtbl = scriptmaker_host.result.scheduled
-							# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
-							n_observable_LOAO = len(scriptmaker_host.result.scheduled)
-						else:
-							n_observable_LOAO = 0
-							print(f"Total Exposure Time ({total_exptime:1.1f} sec) exceeds EXPTIME_LIMIT_SNET {EXPTIME_LIMIT_SMNET} sec")
-						print(f"{n_observable_LOAO} LOAO observations")
-						print("Done!\n")
-
-						#------------------------------------------------------------
-						#	SAO
-						#------------------------------------------------------------
-						name_telescope = 'SAO'
-						print(f"Generating Target List for {name_telescope}")
-
-						filte = 'r'
-						exptime0 = 10*60 # [sec]
-						depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
-						m = expected_magdict['r']
-						#	Minimum criteria
-						exp_min = 120
-						obs_min = 3
-						total_exptime = exptime_for_mag(m, depth, exptime0)
-						if total_exptime < EXPTIME_LIMIT_SMNET:
-							exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-							print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
-							print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
-							#
-							_simple_galcat = simple_galcat.copy()
-							# _simple_galcat['exptime'] = f"{exp_time},{exp_time}"
-							# _simple_galcat['count'] = f"{obs_count},{obs_count}"
-							_simple_galcat['exptime'] = f"{exp_time}"
-							_simple_galcat['count'] = f"{obs_count}"
-							#
-							scheduler_host = ObsScheduler(
-								target_db= _simple_galcat,
-								date = date,
-								name_project = name_project,
-								name_telescope = name_telescope,
-								entire_night = True
-								)
-							# Define target
-							scriptmaker_host = ScriptMaker(scheduler_host)
-							# Action
-							scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-							scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-							scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-
-							# logtbl = scriptmaker_host.result.scheduled
-							# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
-							n_observable_SAO = len(scriptmaker_host.result.scheduled)
-						else:
-							n_observable_SAO = 0
-						print(f"{n_observable_SAO} SAO observations")
-						print("Done!\n")
-
-					# %% [markdown]
-					# # 4. sky grid matching
-					print(f"-"*60)
-					print("Tiling Observation")
-					print(f"-"*60)
-					#	Default values for escaping the error
-					n_observable_RASA36 = 0
-					n_observable_KCT = 0
-					n_observable_CBNUO = 0
-					n_observable_KMTNet_SSO = 0
-					n_observable_KMTNet_CTIO = 0
-					n_observable_KMTNet_SAAO = 0
-
-					for obs in ['KCT', 'CBNUO', 'RASA36', 'KMTNet',]:
-						#
-						print(f"Generating Tiling Pattern for {obs}")
-
-						pointing_cat = Table.read(f'../data/skygrid/{obs}/displaycenter.txt', format='csv')
-						pointing_polygon_cat = Table.read(f'../data/skygrid/{obs}/displayfootprint.txt', format='csv')
-						# coordinates = SkyCoord(pointing_cat['ra'], pointing_cat['dec'], unit='deg')
-
-						# - count the number of pixels within 90% confidence area
-						# 	- Full search 3.9s
-
-						indx_select_skygrid = count_skymap_within_fov(pointing_polygon_cat, skymap, confidence_limit)
-						select_pointing_cat = pointing_cat[indx_select_skygrid]
-						select_pointing_polygon_cat = pointing_polygon_cat[indx_select_skygrid]
-
-						select_skygrid_cat = hstack([select_pointing_cat, select_pointing_polygon_cat])
-						if len(select_skygrid_cat) > 0:
-							select_skygrid_cat['n_hostgalaxy']: int = 0
-							select_skygrid_cat[probkey]: float = 0.0
-
-							print(f"Number of points in selected pointing polygon: {len(select_pointing_polygon_cat)}")
-
-							hostgalaxy90_point = PixCoord(simple_galcat['ra'], simple_galcat['dec'])
-
-							for nn, (ra1, ra2, ra3, ra4, dec1, dec2, dec3, dec4) in enumerate(zip(select_skygrid_cat['ra1'], select_skygrid_cat['ra2'], select_skygrid_cat['ra3'], select_skygrid_cat['ra4'], select_skygrid_cat['dec1'], select_skygrid_cat['dec2'], select_skygrid_cat['dec3'], select_skygrid_cat['dec4'])):
-								#	FoV Polygon
-								vertices = PixCoord([ra1, ra2, ra3, ra4], [dec1, dec2, dec3, dec4],)
-								region_pix = PolygonPixelRegion(vertices=vertices)
-
-								n_hostgalaxy_points = len(simple_galcat[region_pix.contains(hostgalaxy90_point)])
-								total_prob_polygon = np.sum(simple_galcat[probkey][region_pix.contains(hostgalaxy90_point)])
-								# print(nn, n_hostgalaxy_points, total_prob_polygon)
-								
-								select_skygrid_cat['n_hostgalaxy'][nn] = n_hostgalaxy_points
-								select_skygrid_cat[probkey][nn] = total_prob_polygon
-
-
-							select_skygrid_cat.sort(probkey, reverse=True)
-							for key in select_skygrid_cat.keys():
-								if key in ['ra', 'dec', 'ra1', 'ra2', 'ra3', 'ra4', 'dec1', 'dec2', 'dec3', 'dec4', probkey]:
-									select_skygrid_cat[key].format = '.3f'
-							select_skygrid_cat['rank'] = np.arange(len(select_skygrid_cat))
-							# select_skygrid_cat
-
-							#   Cumulative Probability
-							cumsum_prob_skygrid = np.cumsum(select_skygrid_cat[probkey])
-							sum_prob_skygrid = np.sum(select_skygrid_cat[probkey])
-
-							select_skygrid_cat['confidence'] = 0.0
-							select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*1.0>=cumsum_prob_skygrid] = 1.0
-							select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.99>=cumsum_prob_skygrid] = 0.99
-							select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.95>=cumsum_prob_skygrid] = 0.95
-							select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.9>cumsum_prob_skygrid] = 0.9
-							select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.5>cumsum_prob_skygrid] = 0.5
-
-							fig = plt.figure(figsize=(20, 8))
-							# fig = plt.figure(figsize=(40, 16))
-
-							title = f"{record['alert_type']}: {area_90.to_value(u.deg**2):.1f} "+r"$\rm deg^2$ "+f"for {obs}"
-							plt.subplot(121)
-							# if area_90.to(u.deg**2).value>50:
-							# 	only_center=True
-							# else:
-							# 	only_center=False
-							only_center=True
-							plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title=title, only_center=only_center, probkey=probkey)
-							xl, xr = plt.xlim()
-							plt.xlim([xr, xl])
-							plt.xticks(fontsize=20)
-							plt.yticks(fontsize=20)
-							plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
-
-
-							plt.subplot(122)
-							plt.plot(cumsum_prob_skygrid/np.max(cumsum_prob_skygrid), 'o-', mfc='w', mew=3, ms=10, lw=3, c='g')
-							# include 95%, 99% 
-							plt.axhline(y=0.99*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='-', c='tomato', lw=3, alpha=0.75, label=f"99% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.99])})")
-							plt.axhline(y=0.95*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='-.', c='tomato', lw=3, alpha=0.75, label=f"95% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.95])})")
-							plt.axhline(y=0.9*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls=':', c='tomato', lw=3, alpha=0.75, label=f"90% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.9])})")
-							plt.axhline(y=0.5*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='--', c='tomato', lw=3, alpha=0.5, label=f"50% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.5])})")
-
-							if probkey == 'prob_vol':
-								ylabel = r'Cumulative $\rm P_{3D}$'
-							elif probkey == 'prob_vol_x_stmass':
-								ylabel = r'Cumulative $\rm P_{3D}xP_{M_{*}}$'
-							plt.ylabel(ylabel)
-							plt.xlabel("Number of Tiles")
-
-							yl, yu = plt.ylim()
-							plt.ylim([0, yu])
-
-							plt.legend(loc='lower right', fontsize=20)
-							# _ = plt.yticks(np.arange(0, 1.1, 0.1))
-							plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
-							plt.title(f"{obs}")
-
-							plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
-							plt.xticks(fontsize=20)
-							# plt.yticks(fontsize=20)
-							plt.yticks(np.arange(0, 1.01, 0.1), fontsize=20)
-
-
-
-							plt.tight_layout()
-							plt.savefig(f"{path_output}/tiling_{obs}.png", dpi=100)
-							plt.close()
-
-							cat_meta_dict = {
-								"obs": obs,
-								"alert_type": record['alert_type'],
-								"superevent_id": record['superevent_id'],
-							}
-							select_skygrid_cat.meta = cat_meta_dict
-							select_skygrid_cat_name = f"{path_output}/SkyGridCatalog_{obs}_{confidence_limit*1e2:g}.csv"
-							select_skygrid_cat['obj'] = record['superevent_id']
-							select_skygrid_cat['note'] = select_skygrid_cat['#id']
-							select_skygrid_cat['weight'] = select_skygrid_cat[probkey]
-
-							skygrid_meta_dict = {
-								'superevent_id': record['superevent_id'],
-								'alert_type': record['alert_type'],
-								'most_probable_event': most_probable_event,
-								'most_probable_event_prob': most_probable_event_prob,
-								'confidence': confidence_limit,
-								'ordering': probkey,
-								"obs": obs,
-							}
-							select_skygrid_cat.write(f"{select_skygrid_cat_name}", format='csv', overwrite=True)
+							date = Time.now()
+						subsequent_days = obs_request_day
+						name_project = 'GECKO'
+						filename_prefix = 'GECKO_'
+						ACP_savepath = f"{path_output}/"
+						rts_savepath = f"{path_output}/"
+						n_target_for_each_timeslot = 2
+						for i in range(subsequent_days):
 							#------------------------------------------------------------
-							#	Scaled the exposure time
+							#	LSGT
 							#------------------------------------------------------------
-							#	Observation Request
-							if obs in ['RASA36', 'KCT', 'CBNUO']:
+							name_telescope = 'LSGT'
+							print(f"Generating Target List for {name_telescope}")
+
+							filte = 'r'
+							exptime0 = 10*60 # [sec]
+							depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
+							m = expected_magdict['r']
+							#	Minimum criteria
+							exp_min = 60
+							obs_min = 3
+							total_exptime = exptime_for_mag(m, depth, exptime0)
+							if total_exptime < EXPTIME_LIMIT_SMNET:
+								exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+								print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+								print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
 								#
-								if obs == "KCT":
+								_simple_galcat = simple_galcat.copy()
+								# _simple_galcat['exptime'] = f"{exp_time},{exp_time}"
+								# _simple_galcat['count'] = f"{obs_count},{obs_count}"
+								_simple_galcat['exptime'] = f"{exp_time}"
+								_simple_galcat['count'] = f"{obs_count}"
+								#
+								scheduler_host = ObsScheduler(
+									target_db=_simple_galcat,
+									date = date,
+									name_project = name_project,
+									name_telescope = name_telescope,
+									entire_night = True
+									)
+								# Define target
+								scriptmaker_host = ScriptMaker(scheduler_host)
+								# Action
+								scriptmaker_host.write_ACPscript_LSGT(filename_prefix=filename_prefix, savepath = ACP_savepath, period_script= 3)
+								scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+								# logtbl = scriptmaker_host.result.scheduled
+								# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
+								scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+								n_observable_LSGT = len(scriptmaker_host.result.scheduled)
+							else:
+								n_observable_LSGT = 0
+								print(f"Total Exposure Time ({total_exptime:1.1f} sec) exceeds EXPTIME_LIMIT_SNET {EXPTIME_LIMIT_SMNET} sec")
+							print(f"{n_observable_LSGT} LSGT observations")
+							print("Done!\n")
+							#------------------------------------------------------------
+							#	LOAO
+							#------------------------------------------------------------
+							name_telescope = 'LOAO'
+							print(f"Generating Target List for {name_telescope}")
+							
+							filte = 'r'
+							exptime0 = 10*60 # [sec]
+							depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
+							m = expected_magdict['r']
+							#	Minimum criteria
+							exp_min = 60
+							obs_min = 3
+							total_exptime = exptime_for_mag(m, depth, exptime0)
+							if total_exptime < EXPTIME_LIMIT_SMNET:
+								exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+								print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+								print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
+								#
+								_simple_galcat = simple_galcat.copy()
+								_simple_galcat['exptime'] = f"{exp_time}"
+								_simple_galcat['count'] = f"{obs_count}"
+								# _simple_galcat['exptime'] = f"{exp_time},{exp_time}"
+								# _simple_galcat['count'] = f"{obs_count},{obs_count}"
+								#
+								scheduler_host = ObsScheduler(
+									target_db= _simple_galcat,
+									date = date,
+									name_project = name_project,
+									name_telescope = name_telescope,
+									entire_night = True
+									)
+								# Define target
+								scriptmaker_host = ScriptMaker(scheduler_host)
+								# Action
+								scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+								scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+								scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+
+								# logtbl = scriptmaker_host.result.scheduled
+								# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
+								n_observable_LOAO = len(scriptmaker_host.result.scheduled)
+							else:
+								n_observable_LOAO = 0
+								print(f"Total Exposure Time ({total_exptime:1.1f} sec) exceeds EXPTIME_LIMIT_SNET {EXPTIME_LIMIT_SMNET} sec")
+							print(f"{n_observable_LOAO} LOAO observations")
+							print("Done!\n")
+
+							#------------------------------------------------------------
+							#	SAO
+							#------------------------------------------------------------
+							name_telescope = 'SAO'
+							print(f"Generating Target List for {name_telescope}")
+
+							filte = 'r'
+							exptime0 = 10*60 # [sec]
+							depth = gcktbl[f'depth_10min'][gcktbl['obs']==name_telescope].item()
+							m = expected_magdict['r']
+							#	Minimum criteria
+							exp_min = 120
+							obs_min = 3
+							total_exptime = exptime_for_mag(m, depth, exptime0)
+							if total_exptime < EXPTIME_LIMIT_SMNET:
+								exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+								print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+								print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
+								#
+								_simple_galcat = simple_galcat.copy()
+								# _simple_galcat['exptime'] = f"{exp_time},{exp_time}"
+								# _simple_galcat['count'] = f"{obs_count},{obs_count}"
+								_simple_galcat['exptime'] = f"{exp_time}"
+								_simple_galcat['count'] = f"{obs_count}"
+								#
+								scheduler_host = ObsScheduler(
+									target_db= _simple_galcat,
+									date = date,
+									name_project = name_project,
+									name_telescope = name_telescope,
+									entire_night = True
+									)
+								# Define target
+								scriptmaker_host = ScriptMaker(scheduler_host)
+								# Action
+								scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+								scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+								scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+
+								# logtbl = scriptmaker_host.result.scheduled
+								# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
+								n_observable_SAO = len(scriptmaker_host.result.scheduled)
+							else:
+								n_observable_SAO = 0
+							print(f"{n_observable_SAO} SAO observations")
+							print("Done!\n")
+
+						# %% [markdown]
+						# # 4. sky grid matching
+						print(f"-"*60)
+						print("Tiling Observation")
+						print(f"-"*60)
+						#	Default values for escaping the error
+						n_observable_RASA36 = 0
+						n_observable_KCT = 0
+						n_observable_CBNUO = 0
+						n_observable_KMTNet_SSO = 0
+						n_observable_KMTNet_CTIO = 0
+						n_observable_KMTNet_SAAO = 0
+
+						for obs in ['KCT', 'CBNUO', 'RASA36', 'KMTNet',]:
+							#
+							print(f"Generating Tiling Pattern for {obs}")
+
+							pointing_cat = Table.read(f'../data/skygrid/{obs}/displaycenter.txt', format='csv')
+							pointing_polygon_cat = Table.read(f'../data/skygrid/{obs}/displayfootprint.txt', format='csv')
+							# coordinates = SkyCoord(pointing_cat['ra'], pointing_cat['dec'], unit='deg')
+
+							# - count the number of pixels within 90% confidence area
+							# 	- Full search 3.9s
+
+							indx_select_skygrid = count_skymap_within_fov(pointing_polygon_cat, skymap, confidence_limit)
+							select_pointing_cat = pointing_cat[indx_select_skygrid]
+							select_pointing_polygon_cat = pointing_polygon_cat[indx_select_skygrid]
+
+							select_skygrid_cat = hstack([select_pointing_cat, select_pointing_polygon_cat])
+							if len(select_skygrid_cat) > 0:
+								select_skygrid_cat['n_hostgalaxy']: int = 0
+								select_skygrid_cat[probkey]: float = 0.0
+
+								print(f"Number of points in selected pointing polygon: {len(select_pointing_polygon_cat)}")
+
+								hostgalaxy90_point = PixCoord(simple_galcat['ra'], simple_galcat['dec'])
+
+								for nn, (ra1, ra2, ra3, ra4, dec1, dec2, dec3, dec4) in enumerate(zip(select_skygrid_cat['ra1'], select_skygrid_cat['ra2'], select_skygrid_cat['ra3'], select_skygrid_cat['ra4'], select_skygrid_cat['dec1'], select_skygrid_cat['dec2'], select_skygrid_cat['dec3'], select_skygrid_cat['dec4'])):
+									#	FoV Polygon
+									vertices = PixCoord([ra1, ra2, ra3, ra4], [dec1, dec2, dec3, dec4],)
+									region_pix = PolygonPixelRegion(vertices=vertices)
+
+									n_hostgalaxy_points = len(simple_galcat[region_pix.contains(hostgalaxy90_point)])
+									total_prob_polygon = np.sum(simple_galcat[probkey][region_pix.contains(hostgalaxy90_point)])
+									# print(nn, n_hostgalaxy_points, total_prob_polygon)
+									
+									select_skygrid_cat['n_hostgalaxy'][nn] = n_hostgalaxy_points
+									select_skygrid_cat[probkey][nn] = total_prob_polygon
+
+
+								select_skygrid_cat.sort(probkey, reverse=True)
+								for key in select_skygrid_cat.keys():
+									if key in ['ra', 'dec', 'ra1', 'ra2', 'ra3', 'ra4', 'dec1', 'dec2', 'dec3', 'dec4', probkey]:
+										select_skygrid_cat[key].format = '.3f'
+								select_skygrid_cat['rank'] = np.arange(len(select_skygrid_cat))
+								# select_skygrid_cat
+
+								#   Cumulative Probability
+								cumsum_prob_skygrid = np.cumsum(select_skygrid_cat[probkey])
+								sum_prob_skygrid = np.sum(select_skygrid_cat[probkey])
+
+								select_skygrid_cat['confidence'] = 0.0
+								select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*1.0>=cumsum_prob_skygrid] = 1.0
+								select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.99>=cumsum_prob_skygrid] = 0.99
+								select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.95>=cumsum_prob_skygrid] = 0.95
+								select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.9>cumsum_prob_skygrid] = 0.9
+								select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.5>cumsum_prob_skygrid] = 0.5
+
+								fig = plt.figure(figsize=(20, 8))
+								# fig = plt.figure(figsize=(40, 16))
+
+								title = f"{record['alert_type']}: {area_90.to_value(u.deg**2):.1f} "+r"$\rm deg^2$ "+f"for {obs}"
+								plt.subplot(121)
+								# if area_90.to(u.deg**2).value>50:
+								# 	only_center=True
+								# else:
+								# 	only_center=False
+								only_center=True
+								plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title=title, only_center=only_center, probkey=probkey)
+								xl, xr = plt.xlim()
+								plt.xlim([xr, xl])
+								plt.xticks(fontsize=20)
+								plt.yticks(fontsize=20)
+								plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
+
+
+								plt.subplot(122)
+								plt.plot(cumsum_prob_skygrid/np.max(cumsum_prob_skygrid), 'o-', mfc='w', mew=3, ms=10, lw=3, c='g')
+								# include 95%, 99% 
+								plt.axhline(y=0.99*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='-', c='tomato', lw=3, alpha=0.75, label=f"99% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.99])})")
+								plt.axhline(y=0.95*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='-.', c='tomato', lw=3, alpha=0.75, label=f"95% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.95])})")
+								plt.axhline(y=0.9*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls=':', c='tomato', lw=3, alpha=0.75, label=f"90% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.9])})")
+								plt.axhline(y=0.5*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='--', c='tomato', lw=3, alpha=0.5, label=f"50% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.5])})")
+
+								if probkey == 'prob_vol':
+									ylabel = r'Cumulative $\rm P_{3D}$'
+								elif probkey == 'prob_vol_x_stmass':
+									ylabel = r'Cumulative $\rm P_{3D}xP_{M_{*}}$'
+								plt.ylabel(ylabel)
+								plt.xlabel("Number of Tiles")
+
+								yl, yu = plt.ylim()
+								plt.ylim([0, yu])
+
+								plt.legend(loc='lower right', fontsize=20)
+								# _ = plt.yticks(np.arange(0, 1.1, 0.1))
+								plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
+								plt.title(f"{obs}")
+
+								plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
+								plt.xticks(fontsize=20)
+								# plt.yticks(fontsize=20)
+								plt.yticks(np.arange(0, 1.01, 0.1), fontsize=20)
+
+
+
+								plt.tight_layout()
+								plt.savefig(f"{path_output}/tiling_{obs}.png", dpi=100)
+								plt.close()
+
+								cat_meta_dict = {
+									"obs": obs,
+									"alert_type": record['alert_type'],
+									"superevent_id": record['superevent_id'],
+								}
+								select_skygrid_cat.meta = cat_meta_dict
+								select_skygrid_cat_name = f"{path_output}/SkyGridCatalog_{obs}_{confidence_limit*1e2:g}.csv"
+								select_skygrid_cat['obj'] = record['superevent_id']
+								select_skygrid_cat['note'] = select_skygrid_cat['#id']
+								select_skygrid_cat['weight'] = select_skygrid_cat[probkey]
+
+								skygrid_meta_dict = {
+									'superevent_id': record['superevent_id'],
+									'alert_type': record['alert_type'],
+									'most_probable_event': most_probable_event,
+									'most_probable_event_prob': most_probable_event_prob,
+									'confidence': confidence_limit,
+									'ordering': probkey,
+									"obs": obs,
+								}
+								select_skygrid_cat.write(f"{select_skygrid_cat_name}", format='csv', overwrite=True)
+								#------------------------------------------------------------
+								#	Scaled the exposure time
+								#------------------------------------------------------------
+								#	Observation Request
+								if obs in ['RASA36', 'KCT', 'CBNUO']:
+									#
+									if obs == "KCT":
+										filte = 'r'
+										exptime0 = 10*60 # [sec]
+										depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
+										m = expected_magdict['r']
+										#	Minimum criteria
+										exp_min = 120
+										obs_min = 3
+									elif obs == "RASA36":
+										filte = 'r'
+										exptime0 = 10*60 # [sec]
+										depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
+										m = expected_magdict['r']
+										#	Minimum criteria
+										exp_min = 60
+										obs_min = 3
+									elif obs == "CBNUO":
+										filte = 'r'
+										exptime0 = 10*60 # [sec]
+										depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
+										m = expected_magdict['r']
+										#	Minimum criteria
+										exp_min = 180
+										obs_min = 3
+
+									total_exptime = exptime_for_mag(m, depth, exptime0)
+									exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+									print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+									print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
+									#
+									_select_skygrid_cat = select_skygrid_cat.copy()
+									_select_skygrid_cat['exptime'] = f"{exp_time},{exp_time}"
+									_select_skygrid_cat['count'] = f"{obs_count},{obs_count}"
+									#
+									subsequent_days = obs_request_day
+									file_prefix ='GECKO_'
+									for i in range(subsequent_days):
+										scheduler_grid = ObsScheduler(
+											target_db= _select_skygrid_cat,
+											date = date,
+											name_project = name_project,
+											name_telescope = obs,
+											entire_night = True
+											)
+
+										if obs == 'RASA36':
+											# Define target
+											scriptmaker_grid = ScriptMaker(scheduler_grid)
+											# Action
+											scriptmaker_grid.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
+											scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+											scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+											n_observable_RASA36 = len(scriptmaker_grid.result.scheduled)
+											print(f"{n_observable_RASA36} RASA36 observations")
+											print("Done!\n")
+
+										elif obs == 'KCT':
+											# Define target
+											scriptmaker_grid = ScriptMaker(scheduler_grid)
+											# Action
+											scriptmaker_grid.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath)
+											scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+											scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+											n_observable_KCT = len(scriptmaker_grid.result.scheduled)
+											print(f"{n_observable_KCT} KCT observations")
+											print("Done!\n")
+
+											n_observable_KCT = len(scriptmaker_grid.result.scheduled)
+										elif obs == 'CBNUO':
+											# Define target
+											scriptmaker_grid = ScriptMaker(scheduler_grid)
+											# Action
+											scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+											scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+											scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+											n_observable_CBNUO = len(scriptmaker_grid.result.scheduled)
+										plt.close()
+										date += 1*u.day
+								elif obs == 'KMTNet':
+
 									filte = 'r'
 									exptime0 = 10*60 # [sec]
 									depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
 									m = expected_magdict['r']
 									#	Minimum criteria
 									exp_min = 120
-									obs_min = 3
-								elif obs == "RASA36":
-									filte = 'r'
-									exptime0 = 10*60 # [sec]
-									depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
-									m = expected_magdict['r']
-									#	Minimum criteria
-									exp_min = 60
-									obs_min = 3
-								elif obs == "CBNUO":
-									filte = 'r'
-									exptime0 = 10*60 # [sec]
-									depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
-									m = expected_magdict['r']
-									#	Minimum criteria
-									exp_min = 180
-									obs_min = 3
-
-								total_exptime = exptime_for_mag(m, depth, exptime0)
-								exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-								print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
-								print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
-								#
-								_select_skygrid_cat = select_skygrid_cat.copy()
-								_select_skygrid_cat['exptime'] = f"{exp_time},{exp_time}"
-								_select_skygrid_cat['count'] = f"{obs_count},{obs_count}"
-								#
-								subsequent_days = obs_request_day
-								file_prefix ='GECKO_'
-								for i in range(subsequent_days):
-									scheduler_grid = ObsScheduler(
-										target_db= _select_skygrid_cat,
-										date = date,
-										name_project = name_project,
-										name_telescope = obs,
-										entire_night = True
-										)
-
-									if obs == 'RASA36':
-										# Define target
-										scriptmaker_grid = ScriptMaker(scheduler_grid)
-										# Action
-										scriptmaker_grid.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
-										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-										scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-										n_observable_RASA36 = len(scriptmaker_grid.result.scheduled)
-										print(f"{n_observable_RASA36} RASA36 observations")
-										print("Done!\n")
-
-									elif obs == 'KCT':
-										# Define target
-										scriptmaker_grid = ScriptMaker(scheduler_grid)
-										# Action
-										scriptmaker_grid.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath)
-										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-										scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-										n_observable_KCT = len(scriptmaker_grid.result.scheduled)
-										print(f"{n_observable_KCT} KCT observations")
-										print("Done!\n")
-
-										n_observable_KCT = len(scriptmaker_grid.result.scheduled)
-									elif obs == 'CBNUO':
-										# Define target
-										scriptmaker_grid = ScriptMaker(scheduler_grid)
-										# Action
-										scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-										scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-										n_observable_CBNUO = len(scriptmaker_grid.result.scheduled)
-									plt.close()
-									date += 1*u.day
-							elif obs == 'KMTNet':
-
-								filte = 'r'
-								exptime0 = 10*60 # [sec]
-								depth = gcktbl[f'depth_10min'][gcktbl['obs']==obs].item()
-								m = expected_magdict['r']
-								#	Minimum criteria
-								exp_min = 120
-								obs_min = 2
+									obs_min = 2
 
 
-								total_exptime = exptime_for_mag(m, depth, exptime0)
-								exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
-								print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
-								print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
-								#
-								_select_skygrid_cat = select_skygrid_cat.copy()
-								_select_skygrid_cat['exptime'] = f"{exp_time},{exp_time}"
-								_select_skygrid_cat['count'] = f"{obs_count},{obs_count}"
+									total_exptime = exptime_for_mag(m, depth, exptime0)
+									exp_time, obs_count = find_exposure_time(exp_min, obs_min, int(total_exptime))
+									print(f"Required Total Exposure Time: {total_exptime:1.1f} sec")
+									print(f"--> {exp_time:g}x{obs_count}={exp_time*obs_count:g} sec")
+									#
+									_select_skygrid_cat = select_skygrid_cat.copy()
+									_select_skygrid_cat['exptime'] = f"{exp_time},{exp_time}"
+									_select_skygrid_cat['count'] = f"{obs_count},{obs_count}"
 
 
 
-								data_original = _select_skygrid_cat
-								# cbands = ['B', 'R']
-								cbands = ['R']
-								for i in range(subsequent_days):
-									date_str = f"{date.datetime.year}{date.datetime.month:0>2}{date.datetime.day:0>2}"
+									data_original = _select_skygrid_cat
+									# cbands = ['B', 'R']
+									cbands = ['R']
+									for i in range(subsequent_days):
+										date_str = f"{date.datetime.year}{date.datetime.month:0>2}{date.datetime.day:0>2}"
 
-									for site in ['SSO', 'SAAO', 'CTIO']:
-										obsname = f"KMTNet_{site}"
-										scheduler_grid = ObsScheduler(target_db = _select_skygrid_cat,
-																		date = date,
-																		name_project = name_project,
-																		name_telescope = obsname,
-																		entire_night = True)
+										for site in ['SSO', 'SAAO', 'CTIO']:
+											obsname = f"KMTNet_{site}"
+											scheduler_grid = ObsScheduler(target_db = _select_skygrid_cat,
+																			date = date,
+																			name_project = name_project,
+																			name_telescope = obsname,
+																			entire_night = True)
 
-										# Define target
-										scriptmaker_grid = ScriptMaker(scheduler_grid)
-										# Action
-										scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-										scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-										logtbl = scriptmaker_grid.result.scheduled
+											# Define target
+											scriptmaker_grid = ScriptMaker(scheduler_grid)
+											# Action
+											scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+											scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+											logtbl = scriptmaker_grid.result.scheduled
 
-										if site == 'SSO':
-											n_observable_KMTNet_SSO = len(logtbl)
-										elif site == 'SAAO':
-											n_observable_KMTNet_SAAO = len(logtbl)
-										elif site == 'CTIO':
-											n_observable_KMTNet_CTIO = len(logtbl)
-										plt.close()
+											if site == 'SSO':
+												n_observable_KMTNet_SSO = len(logtbl)
+											elif site == 'SAAO':
+												n_observable_KMTNet_SAAO = len(logtbl)
+											elif site == 'CTIO':
+												n_observable_KMTNet_CTIO = len(logtbl)
+											plt.close()
 
-										#	KMTNet Script Inputs
-										cfield = [record['superevent_id']]*len(logtbl)
-										crarr = logtbl['ra']
-										cdecarr = logtbl['dec']
+											#	KMTNet Script Inputs
+											cfield = [record['superevent_id']]*len(logtbl)
+											crarr = logtbl['ra']
+											cdecarr = logtbl['dec']
 
-										generate_KMTNet_obs_script(
-											cfield,
-											crarr,
-											cdecarr,
-											site,
-											date_str,
-											cbands,
-											path_save=path_output)
-									date += 1*u.day
-					#============================================================
-					#	Summary
-					#------------------------------------------------------------
-					delt = time.time() - st
+											generate_KMTNet_obs_script(
+												cfield,
+												crarr,
+												cdecarr,
+												site,
+												date_str,
+												cbands,
+												path_save=path_output)
+										date += 1*u.day
+						#============================================================
+						#	Summary
+						#------------------------------------------------------------
+						delt = time.time() - st
 
-					_summary_txt = f"""event {record['superevent_id']}_{record['alert_type']}
-					trigger_time {record['event']['time']}
-					process_start {t_now.isot}Z
-					process_time(sec) {delt:.1f}
-					phase(day) {phase:1.1f}
-					classification {most_probable_event}({most_probable_event_prob*1e2:g}%)
-					distance(Mpc) {distmean:.1f}+/-{diststd:.1f}
-					area_90%(deg2) {area_90.to(u.deg**2).value:.1f}
-					radec_max(deg) {ramax:1.3f},{decmax:1.3f}
-					radec_max(hmsdms) {ra_hms},{dec_dms}
-					n_host_galaxy_all {len(simple_galcat)}
-					n_host_galaxy_90% {len(simple_galcat[simple_galcat['confidence']<=0.9])}
-					n_host_galaxy_50% {len(simple_galcat[simple_galcat['confidence']<=0.5])}
-					"""
-					for filte in list(expected_magdict.keys()):
-						_summary_txt += f"expected_{filte}mag {expected_magdict[filte]:.1f}\n"
-					_summary_txt +=f"""SAO {n_observable_SAO}
-					LOAO {n_observable_LOAO}
-					LSGT {n_observable_LSGT}
-					RASA36 {n_observable_RASA36}
-					KCT {n_observable_KCT}
-					CBNUO {n_observable_CBNUO}
-					KMTNet_SSO {n_observable_KMTNet_SSO}
-					KMTNet_CTIO {n_observable_KMTNet_CTIO}
-					KMTNet_SAAO {n_observable_KMTNet_SAAO}"""
-					# print(_summary_txt)
-					text_list = []
+						_summary_txt = f"""event {record['superevent_id']}_{record['alert_type']}
+						trigger_time {record['event']['time']}
+						process_start {t_now.isot}Z
+						process_time(sec) {delt:.1f}
+						phase(day) {phase:1.1f}
+						classification {most_probable_event}({most_probable_event_prob*1e2:g}%)
+						distance(Mpc) {distmean:.1f}+/-{diststd:.1f}
+						area_90%(deg2) {area_90.to(u.deg**2).value:.1f}
+						radec_max(deg) {ramax:1.3f},{decmax:1.3f}
+						radec_max(hmsdms) {ra_hms},{dec_dms}
+						n_host_galaxy_all {len(simple_galcat)}
+						n_host_galaxy_90% {len(simple_galcat[simple_galcat['confidence']<=0.9])}
+						n_host_galaxy_50% {len(simple_galcat[simple_galcat['confidence']<=0.5])}
+						"""
+						for filte in list(expected_magdict.keys()):
+							_summary_txt += f"expected_{filte}mag {expected_magdict[filte]:.1f}\n"
+						_summary_txt +=f"""SAO {n_observable_SAO}
+						LOAO {n_observable_LOAO}
+						LSGT {n_observable_LSGT}
+						RASA36 {n_observable_RASA36}
+						KCT {n_observable_KCT}
+						CBNUO {n_observable_CBNUO}
+						KMTNet_SSO {n_observable_KMTNet_SSO}
+						KMTNet_CTIO {n_observable_KMTNet_CTIO}
+						KMTNet_SAAO {n_observable_KMTNet_SAAO}"""
+						# print(_summary_txt)
+						text_list = []
 
-					cols = _summary_txt.split('\n')
-					col0 = [c.split()[0] for c in cols]
-					col1 = [c.split()[1] for c in cols]
+						cols = _summary_txt.split('\n')
+						col0 = [c.split()[0] for c in cols]
+						col1 = [c.split()[1] for c in cols]
 
-					for i, (c0, c1,) in enumerate(zip(col0, col1,)):
-						# 첫 번째 열 출력
-						# print(f'{c0:<{20}}', end=' ')
-						# print(f'{c1:<{20}}', end=' ')
-						text_list.append(f'{c0:<{20}}{c1}')
+						for i, (c0, c1,) in enumerate(zip(col0, col1,)):
+							# 첫 번째 열 출력
+							# print(f'{c0:<{20}}', end=' ')
+							# print(f'{c1:<{20}}', end=' ')
+							text_list.append(f'{c0:<{20}}{c1}')
 
-					summary_txt = '\n'.join(text_list)
-					# print(summary_txt)
+						summary_txt = '\n'.join(text_list)
+						# print(summary_txt)
 
-					summary_file = f"{path_output}/summary.txt"
-					s = open(summary_file, "w")
-					s.write(summary_txt)
-					s.close()
-					if os.path.exists(summary_file):
-						os.system(f"cat {summary_file}")
-					else:
-						print(f"The Summary File {summary_file} does not exist")
-					
-					
-					# # Fin. ALERT!!!
+						summary_file = f"{path_output}/summary.txt"
+						s = open(summary_file, "w")
+						s.write(summary_txt)
+						s.close()
+						if os.path.exists(summary_file):
+							os.system(f"cat {summary_file}")
+						else:
+							print(f"The Summary File {summary_file} does not exist")
+						
+						
+						# # Fin. ALERT!!!
 
-					OAuth_Token = SLACK_API_CONFIG['OAuth_Token']
+						OAuth_Token = SLACK_API_CONFIG['OAuth_Token']
 
-					channel = '#gecko--alert'
-					# text = f"[`GeckoDigestor`] TEST messeage"
-					text = f"[`GeckoDigestor`] Process is done for {record['superevent_id']}-{record['alert_type']} (qso:{path_output})\n"+f"""```{summary_txt}```"""
-					#---------------------------------
-					#       Slack message
-					#---------------------------------
-					param_slack = dict(
-							token = OAuth_Token,
-							channel = channel,
-							text = text,
-					)
-					if slack:
-						slack_bot(**param_slack)
-					print("\nWaiting for a GW alert...\n")
+						channel = '#gecko--alert'
+						# text = f"[`GeckoDigestor`] TEST messeage"
+						text = f"[`GeckoDigestor`] Process is done for {record['superevent_id']}-{record['alert_type']} (qso:{path_output})\n"+f"""```{summary_txt}```"""
+						#---------------------------------
+						#       Slack message
+						#---------------------------------
+						param_slack = dict(
+								token = OAuth_Token,
+								channel = channel,
+								text = text,
+						)
+						if slack:
+							slack_bot(**param_slack)
+						print("\nWaiting for a GW alert...\n")
 				else:
 
 					OAuth_Token = SLACK_API_CONFIG['OAuth_Token']
