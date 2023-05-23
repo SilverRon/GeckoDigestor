@@ -48,9 +48,9 @@ def AlertReceiver(record):
     # if record['superevent_id'][0] != 'M':
     #     return record, None
 
-    # if record['alert_type'] == 'RETRACTION':
-    #     print(record['superevent_id'], 'was retracted')
-    #     return record, None
+    if record['alert_type'] == 'RETRACTION':
+        print(record['superevent_id'], 'was retracted')
+        return record, None
 
     # Respond only to 'CBC' events. Change 'CBC' to 'Burst' to respond to
     # only unmodeled burst events.
@@ -65,58 +65,59 @@ def AlertReceiver(record):
     # if (record['event']['skymap'] != None):
     # if record is not None and 'event' in record and 'skymap' in record['event']:
     # if record is not None and 'event' in record:
-    if {record['alert_type']} != 'RETRACTION':
+    if record is not None and 'event' in record and record['alert_type'] != 'RETRACTION':
+        if 'skymap' in record['event']:
 
-        skymap_str = record['event']['skymap']
-        # Decode, parse skymap, and print most probable sky location
-        skymap_bytes = b64decode(skymap_str)
-        skymap = Table.read(BytesIO(skymap_bytes))
+            skymap_str = record['event']['skymap']
+            # Decode, parse skymap, and print most probable sky location
+            skymap_bytes = b64decode(skymap_str)
+            skymap = Table.read(BytesIO(skymap_bytes))
 
-        level, ipix = ah.uniq_to_level_ipix(
-            skymap[np.argmax(skymap['PROBDENSITY'])]['UNIQ']
-        )
-        ra, dec = ah.healpix_to_lonlat(ipix, ah.level_to_nside(level),
-                                       order='nested')
-        print(f'Most probable sky location (RA, Dec) = ({ra.deg:.3f}, {dec.deg:.3f})')
+            level, ipix = ah.uniq_to_level_ipix(
+                skymap[np.argmax(skymap['PROBDENSITY'])]['UNIQ']
+            )
+            ra, dec = ah.healpix_to_lonlat(ipix, ah.level_to_nside(level),
+                                        order='nested')
+            print(f'Most probable sky location (RA, Dec) = ({ra.deg:.3f}, {dec.deg:.3f})')
 
-        # Print some information from FITS header
-        print(f'Distance = {skymap.meta["DISTMEAN"]:.1f} +/- {skymap.meta["DISTSTD"]:.1f} Mpc')
+            # Print some information from FITS header
+            print(f'Distance = {skymap.meta["DISTMEAN"]:.1f} +/- {skymap.meta["DISTSTD"]:.1f} Mpc')
 
-        #   Calculate the area of the skymap
-        skymap.sort('PROBDENSITY', reverse=True)
-        level, ipix = ah.uniq_to_level_ipix(skymap['UNIQ'])
-        pixel_area = ah.nside_to_pixel_area(ah.level_to_nside(level))
-        prob = pixel_area * skymap['PROBDENSITY']
-        cumprob = np.cumsum(prob)
-        i = cumprob.searchsorted(0.9)
-        area_90 = pixel_area[:i].sum()
-        print(f"Area = {area_90.to(u.deg**2).value:.1f} deg2")
+            #   Calculate the area of the skymap
+            skymap.sort('PROBDENSITY', reverse=True)
+            level, ipix = ah.uniq_to_level_ipix(skymap['UNIQ'])
+            pixel_area = ah.nside_to_pixel_area(ah.level_to_nside(level))
+            prob = pixel_area * skymap['PROBDENSITY']
+            cumprob = np.cumsum(prob)
+            i = cumprob.searchsorted(0.9)
+            area_90 = pixel_area[:i].sum()
+            print(f"Area = {area_90.to(u.deg**2).value:.1f} deg2")
 
-        #   Put additional information to the record
-        record['ramax'] = ra.deg
-        record['decmax'] = dec.deg
-        record['area_90'] = area_90.to_value(u.deg**2)
-        record['distmean'] = skymap.meta['DISTMEAN']
-        record['diststd'] = skymap.meta['DISTSTD']
+            #   Put additional information to the record
+            record['ramax'] = ra.deg
+            record['decmax'] = dec.deg
+            record['area_90'] = area_90.to_value(u.deg**2)
+            record['distmean'] = skymap.meta['DISTMEAN']
+            record['diststd'] = skymap.meta['DISTSTD']
 
-    print(f"-"*60)
-    # Print remaining fields
-    # print('Record:')
-    # pprint(record)
+        print(f"-"*60)
+        # Print remaining fields
+        # print('Record:')
+        # pprint(record)
 
 
-    # # 새로 생성할 디렉토리 이름
-    # path_output = f"../output/{record['superevent_id']}_{record['alert_type']}"
-    # # 디렉토리가 존재하지 않으면 생성
-    # if not os.path.exists(path_output):
-    #     os.makedirs(path_output)
-    # # 딕셔너리를 JSON 문자열로 변환
-    # record_str = json.dumps(record)
-    # # JSON 문자열을 파일로 저장
-    # with open(f'{path_output}/record.json', 'w') as file:
-    #     file.write(record_str)
+        # # 새로 생성할 디렉토리 이름
+        # path_output = f"../output/{record['superevent_id']}_{record['alert_type']}"
+        # # 디렉토리가 존재하지 않으면 생성
+        # if not os.path.exists(path_output):
+        #     os.makedirs(path_output)
+        # # 딕셔너리를 JSON 문자열로 변환
+        # record_str = json.dumps(record)
+        # # JSON 문자열을 파일로 저장
+        # with open(f'{path_output}/record.json', 'w') as file:
+        #     file.write(record_str)
 
-    # write_skymap_to_fits(skymap, path_output=f"{path_output}/skymap.fits")
+        # write_skymap_to_fits(skymap, path_output=f"{path_output}/skymap.fits")
 
 
     return record, skymap
