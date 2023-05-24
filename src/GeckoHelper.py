@@ -28,9 +28,9 @@ def count_skymap_within_fov(pointing_polygon_cat, skymap, confidence_limit):
 def is_condition_satisfied(record):
     is_classification_NS = 'NS' in record['event']['classification']
     is_distmean_less = record['distmean'] < 1_000 # [Mpc]
-    is_area_90_less = record['area_90'] < 15_000 # [deg2]
-    is_area_less = record['area'] < 5_000 # [deg2]
+    is_area_NS_less = record['area_90'] < 15_000 # [deg2]
+    is_area_BH_less = record['area_90'] < 5_000 # [deg2]
 
-    return (is_classification_NS and is_distmean_less and is_area_90_less) or (
-        not is_classification_NS and is_distmean_less and is_area_less
+    return (is_classification_NS and is_distmean_less and is_area_NS_less) or (
+        not is_classification_NS and is_distmean_less and is_area_BH_less
     )
