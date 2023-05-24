@@ -657,7 +657,9 @@ while True:
 					plt.savefig(f"{path_output}/cumulative_p3d_HostGalaxy.png", dpi=100,)
 					plt.close()
 					#%%
-					if (record['distmean'] < 1_000) & (record['area_90'] < 15_000):
+					# if (record['distmean'] < 1_000) & (record['area_90'] < 15_000):
+					# if (('NS' in record['event']['classification'] & record['distmean'] < 1_000) & (record['area_90'] < 15_000)) | (('NS' not in record['event']['classification']) & (record['distmean'] < 1_000) & (record['area']<5_000)):
+					if is_condition_satisfied(record):
 						#============================================================
 						#	Galaxy-targeted observation
 						#------------------------------------------------------------
