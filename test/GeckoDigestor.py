@@ -557,7 +557,8 @@ while True:
 					simple_galcat['rank'] = np.arange(len(simple_galcat), dtype=int)
 					#   Formatting
 					for key in simple_galcat.keys():
-						if key in ['ra', 'dec', 'd_L', probkey]:
+						# if key in ['ra', 'dec', 'd_L', probkey]:
+						if key in ['ra', 'dec', 'd_L',]:
 							simple_galcat[key].format = '.3f'
 					#   Cumulative Probability
 					cumsum_prob_gal = np.cumsum(simple_galcat[probkey])
@@ -876,7 +877,8 @@ while True:
 
 								select_skygrid_cat.sort(probkey, reverse=True)
 								for key in select_skygrid_cat.keys():
-									if key in ['ra', 'dec', 'ra1', 'ra2', 'ra3', 'ra4', 'dec1', 'dec2', 'dec3', 'dec4', probkey]:
+									# if key in ['ra', 'dec', 'ra1', 'ra2', 'ra3', 'ra4', 'dec1', 'dec2', 'dec3', 'dec4', probkey]:
+									if key in ['ra', 'dec', 'ra1', 'ra2', 'ra3', 'ra4', 'dec1', 'dec2', 'dec3', 'dec4',]:
 										select_skygrid_cat[key].format = '.3f'
 								select_skygrid_cat['rank'] = np.arange(len(select_skygrid_cat))
 								# select_skygrid_cat
