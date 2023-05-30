@@ -236,4 +236,4 @@ if __name__ == "__main__":
                         if key in ['ramax', 'decmax', 'area_90', 'distmean', 'diststd']:
                             eventlogtbl[key].format = ".3f"
                         
-                eventlogtbl.write(f"{path_out}/event.log", format='ascii.fixed_width', overwrite=True)
+                # eventlogtbl.write(f"{path_out}/event.log", format='ascii.fixed_width', overwrite=True)
