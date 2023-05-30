@@ -85,7 +85,7 @@ import numpy as np
 from astropy import units as u
 import astropy.coordinates as coord
 
-def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.ndarray, site: str, date: str, cbands: list, path_save: str):
+def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.ndarray, site: str, date: str, cbands: list, cid: list, path_save: str):
 	'''
 	This function generates a KMTNet observation script given inputs for object name, RA/Dec coordinates, observation site, date, and filter bands.
 	The function takes the following arguments:
@@ -157,6 +157,7 @@ def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.nda
 	for i in range(len(craarr)):
 		# iteration by field name
 		tname = cfield[i]
+		cidname = cid[i]
 		
 		# iteration by dithing option
 		# (0=no dithering, 1=ra direction, 2=dec direction, 3=ra&dec direction)
@@ -179,7 +180,7 @@ def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.nda
 			# iteration by filters
 			for cband in cbands:
 				cnt = cnt + 1
-				f.write('{0:<12}{1:<15}{2:<13}{3:<13}{4:<14}{5:<15}{6:<6}{7:<29}{8:}\n'.format('TOO',tname+'-'+str(dith), tra_sep,tdec_sep,'0   OBJECT',tname,cband,'120                   -     0',' #'+str(cnt)))
+				f.write('{0:<12}{1:<15}{2:<13}{3:<13}{4:<14}{5:<15}{6:<6}{7:<29}{8:}\n'.format('TOO',tname+'-'+str(dith), tra_sep,tdec_sep,'0   OBJECT',tname,cband,'120                   -     0',' #'+str(cidname)))
 	f.close()
 	return 
 

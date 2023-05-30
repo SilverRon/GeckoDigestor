@@ -154,10 +154,6 @@ while True:
 					)
 					ra, dec = ah.healpix_to_lonlat(ipix, ah.level_to_nside(level),
 												order='nested')
-					print(f'Most probable sky location (RA, Dec) = ({ra.deg:.3f}, {dec.deg:.3f})')
-
-					# Print some information from FITS header
-					print(f'Distance = {skymap.meta["DISTMEAN"]:.1f} +/- {skymap.meta["DISTSTD"]:.1f} Mpc')
 
 					#   Calculate the area of the skymap
 					skymap.sort('PROBDENSITY', reverse=True)
@@ -167,6 +163,18 @@ while True:
 					cumprob = np.cumsum(prob)
 					i = cumprob.searchsorted(0.9)
 					area_90 = pixel_area[:i].sum()
+					#
+					if (record['event']['group'] == 'CBC'):
+						pass
+					elif (record['event']['group'] == 'Burst'):
+						#   Put some distance info
+						skymap.meta['DISTMEAN'] = 1000
+						skymap.meta['DISTSTD'] = 100
+					#
+					print(f'Most probable sky location (RA, Dec) = ({ra.deg:.3f}, {dec.deg:.3f})')
+					print(f'Distance = {skymap.meta["DISTMEAN"]:.1f} +/- {skymap.meta["DISTSTD"]:.1f} Mpc')
+					if record['event']['group'] == 'Burst':
+						print(f"*Burst event: Distance is brutly set to run the following code")
 					print(f"Area = {area_90.to(u.deg**2).value:.1f} deg2")
 
 					#   Put additional information to the record
@@ -176,11 +184,16 @@ while True:
 					record['distmean'] = skymap.meta['DISTMEAN']
 					record['diststd'] = skymap.meta['DISTSTD']
 
+
 					print(f"-"*60)
 				#============================================================
 
-				most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
+				# most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
 
+				if record['event']['group'] == 'CBC':
+					most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
+				else:
+					most_probable_event = 'Burst'
 
 				st = time.time()
 
@@ -297,6 +310,22 @@ while True:
 					t_gw = Time(record['event']['time'])
 					# t_now = Time("2018-11-03T04:30:46.654Z")
 					t_now = Time.now()
+					#	Location of the Sun
+					from astropy.coordinates import get_sun
+					from astropy.time import Time
+					import astropy.units as u
+
+					# 주어진 UTC 시간
+					utc_time = Time(t_now.utc, scale='utc')
+
+					# 태양의 적경, 적위 계산
+					sun_position = get_sun(utc_time)
+					sun_ra = sun_position.ra
+					sun_dec = sun_position.dec
+
+					# 결과 출력
+					print("Sun: (RA, Dec):", sun_ra, sun_dec)
+					#
 					if record['superevent_id'] == 'MS181101ab':
 						print("This is an MS181101ab event for test the pipeline")
 						phase = 1.0
@@ -304,19 +333,25 @@ while True:
 						phase = t_now.jd - t_gw.jd
 					print(f"Phase: {phase:.1f} days")
 					# %%
-					most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
-					most_probable_event_prob = record['event']['classification'][most_probable_event]
+					# most_probable_event = max(record['event']['classification'], key=record['event']['classification'].get)
 
-					#   Yes EM counterpart
-					if most_probable_event in ['BNS', 'NSBH',]:
-						#   Possibilities to have an emission
-						if (record['event']['properties']['HasNS']>0.9) & (record['event']['properties']['HasRemnant']>0.9):
-							em_counterpart = True
-					elif most_probable_event in ['BBH']:
-						pass
-					elif most_probable_event in ['Terrestrial']:
-						gecko_digestor_trigger = False
-						pass
+
+					if record['event']['group'] == 'CBC':
+						most_probable_event_prob = record['event']['classification'][most_probable_event]
+						#   Yes EM counterpart
+						if most_probable_event in ['BNS', 'NSBH',]:
+							#   Possibilities to have an emission
+							if (record['event']['properties']['HasNS']>0.9) & (record['event']['properties']['HasRemnant']>0.9):
+								em_counterpart = True
+						elif most_probable_event in ['BBH']:
+							pass
+						elif most_probable_event in ['Terrestrial']:
+							gecko_digestor_trigger = False
+							pass
+					elif record['event']['group'] == 'Burst':
+						most_probable_event = 'Burst'
+						most_probable_event_prob = 1.0
+						gecko_digestor_trigger = True
 					print(f"Most probable event: {most_probable_event} ({most_probable_event_prob*1e2:.1f}%)")
 					print(f"Gecko Digestor Trigger: {gecko_digestor_trigger}")
 
@@ -550,7 +585,8 @@ while True:
 					simple_galcat['stmass'] = select_cat['stellar_mass']
 					simple_galcat[probkey] = select_cat[probkey]
 					#	To prevent all values from being NaN.
-					simple_galcat['prob_vol_x_stmass'] = np.nan_to_num(simple_galcat['prob_vol_x_stmass'], nan=0)
+					# simple_galcat['prob_vol_x_stmass'] = np.nan_to_num(simple_galcat['prob_vol_x_stmass'], nan=0)
+					simple_galcat['prob_vol_x_stmass'] = np.nan_to_num(simple_galcat['prob_vol_x_stmass'], nan=np.min(simple_galcat['prob_vol_x_stmass'][(simple_galcat['prob_vol_x_stmass']!=0.0) & ~np.isnan(simple_galcat['prob_vol_x_stmass'])]))
 
 					#	Sort by prob --> rank
 					simple_galcat = simple_galcat[np.flipud(np.argsort(simple_galcat[probkey]))]
@@ -590,47 +626,155 @@ while True:
 					simple_galcat.write(simple_galcat_name, format='csv', overwrite=True)
 					print(f"Save the host galaxy candidate catalog ({os.path.basename(simple_galcat_name)})")
 
+
+
 					# %%
 					#	Skymap
-					# fig = plt.figure(figsize=(10, 8))
-					fig = plt.figure(figsize=(20, 16))
+					import healpy as hp
+					from healpy.newvisufunc import projview, newprojplot
 
-					plt.scatter(skymap['RA'][cumprob<0.9], skymap['DEC'][cumprob<0.9], c=skymap['CUMPROBDENSITY'][cumprob<0.9], zorder=0, alpha=0.5)
-					xl, xr = plt.xlim()
-					cbar = plt.colorbar()
-					cbar.set_label(r"$\rm P_{3D}$")
+					fig = plt.figure(figsize=(20, 12))
+					if most_probable_event == 'BBH':
+						cmap = 'hot'
+					elif most_probable_event in ['BNS', 'NSBH']:
+						cmap = 'viridis'
+					else:
+						cmap = 'Greys_r'
 
-					plt.grid('both', ls='--', c='grey', alpha=0.5)
-					plt.xlim([xr, xl])
-					plt.xlabel('RA [deg]', fontsize=20)
-					plt.ylabel('Dec [deg]', fontsize=20)
-					plt.xticks(fontsize=20)
-					plt.yticks(fontsize=20)
-					plt.savefig(f"{path_output}/skymap_90.png", dpi=100,)
+					# 필요한 열 추출
+					ra_deg = skymap['RA']
+					dec_deg = skymap['DEC']
+
+					# 좌표 변환 (deg to rad)
+					ra_rad = np.radians(ra_deg)
+					dec_rad = np.radians(dec_deg)
+
+					# Healpix 맵 생성
+					nside = 2**7  # 원하는 해상도 (2의 거듭제곱)
+					npix = hp.nside2npix(nside)
+					hp_map = np.zeros(npix)
+
+					# 각 좌표에 해당하는 픽셀 값 설정
+					indices = hp.ang2pix(nside, theta=0.5 * np.pi - dec_rad, phi=ra_rad)
+					hp_map[indices] = skymap['PROBDENSITY']
+
+					hp.mollview(
+						hp_map,
+						title=f"{record['superevent_id']}_{record['alert_type']}",
+						cbar=True, cmap=cmap,
+						flip='astro',
+						# rot=(90, -45),
+						coord=['E'],
+						unit=r'$\rm P_{3D}$',
+						# gal_cut=[-20,+20],
+						)
+
+					# hp.graticule(c='silver', alpha=0.5)  # 그리드 라인 추가
+					hp.graticule(dpar=30, dmer=30, coord='E', c='silver', alpha=0.5)  # 그리드 라인 추가
+
+					plt.savefig(f"{path_output}/skymap.png", dpi=100,)
+					
+					#	Just plane plot (before 23.05.30)
+					# fig = plt.figure(figsize=(20, 16))
+					# plt.scatter(skymap['RA'][cumprob<0.9], skymap['DEC'][cumprob<0.9], c=skymap['CUMPROBDENSITY'][cumprob<0.9], zorder=0, alpha=0.5)
+					# xl, xr = plt.xlim()
+					# cbar = plt.colorbar()
+					# cbar.set_label(r"$\rm P_{3D}$")
+					# plt.grid('both', ls='--', c='grey', alpha=0.5)
+					# plt.xlim([xr, xl])
+					# plt.xlabel('RA [deg]', fontsize=20)
+					# plt.ylabel('Dec [deg]', fontsize=20)
+					# plt.xticks(fontsize=20)
+					# plt.yticks(fontsize=20)
+					# plt.savefig(f"{path_output}/skymap_90.png", dpi=100,)
+					# plt.close()
+					#%%
+
+					fig = plt.figure(figsize=(20, 12))
+					if most_probable_event == 'BBH':
+						cmap = 'hot'
+					elif most_probable_event in ['BNS', 'NSBH']:
+						cmap = 'viridis'
+					else:
+						cmap = 'Greys_r'
+
+					# 필요한 열 추출
+					ra_deg = skymap['RA']
+					dec_deg = skymap['DEC']
+
+					# 좌표 변환 (deg to rad)
+					ra_rad = np.radians(ra_deg)
+					dec_rad = np.radians(dec_deg)
+
+					# Healpix 맵 생성
+					nside = 2**7  # 원하는 해상도 (2의 거듭제곱)
+					npix = hp.nside2npix(nside)
+					hp_map = np.zeros(npix)
+
+					# 각 좌표에 해당하는 픽셀 값 설정
+					indices = hp.ang2pix(nside, theta=0.5 * np.pi - dec_rad, phi=ra_rad)
+					hp_map[indices] = skymap['PROBDENSITY']
+
+					hp.mollview(
+						hp_map,
+						title=f"{record['superevent_id']}_{record['alert_type']} (n={len(simple_galcat)})",
+						cbar=True, cmap=cmap,
+						flip='astro',
+						# rot=(90, -45),
+						coord=['E'],
+						unit=r'$\rm P_{3D}$',
+						# gal_cut=[-20,+20],
+						)
+
+					# hp.graticule(c='silver', alpha=0.5)  # 그리드 라인 추가
+					hp.graticule(dpar=30, dmer=30, coord='E', c='silver', alpha=0.5)  # 그리드 라인 추가
+
+					# KMTNet
+					# if len(select_skygrid_cat) < 100:
+					# 	colors = makeSpecColors(n=len(select_skygrid_cat))
+					# else:
+					# 	colors = makeSpecColors(n=100)
+
+					hp.projplot(simple_galcat['ra'][:10], simple_galcat['dec'][:10], lonlat=True, c='r', marker='+', ls='none', alpha=1.0, zorder=10)
+					hp.projplot(simple_galcat['ra'][10:100], simple_galcat['dec'][10:100], lonlat=True, c='w', marker='+', ls='none', alpha=0.5, zorder=9)
+					# hp.projplot(simple_galcat['ra'][100:], simple_galcat['dec'][100:], lonlat=True, c='w', marker='.', ls='none', alpha=0.01)
+
+					#	Sun (23.05.18)
+					hp.projplot(sun_ra.deg, sun_dec.deg, lonlat=True, c='gold', marker='o', ms=10, ls='none')
+					hp.projplot(sun_ra.deg, sun_dec.deg, lonlat=True, c='r', marker='o', ms=5, ls='none')
+					# newprojplot(sun_ra.deg, sun_dec.deg, c='gold', marker='o', ms=10, ls='none')
+					# newprojplot(sun_ra.deg, sun_dec.deg, c='r', marker='o', ms=5, ls='none')
+
+					hp.graticule(c='silver', alpha=0.5)  # 그리드 라인 추가
+					plt.savefig(f"{path_output}/HostGalaxy.png", dpi=100,)
+
+					# plt.show()
 					plt.close()
+
 					# %%
-					fig = plt.figure(figsize=(20, 8))
+					# fig = plt.figure(figsize=(20, 8))
 					# fig = plt.figure(figsize=(40, 16))
 
-					plt.subplot(121)
+					# plt.subplot(121)
 
-					plt.scatter(simple_galcat['ra'], simple_galcat['dec'], c=simple_galcat[probkey], cmap='hot', edgecolors='k')
-					cbar_gal = plt.colorbar()
+					# plt.scatter(simple_galcat['ra'], simple_galcat['dec'], c=simple_galcat[probkey], cmap='hot', edgecolors='k')
+					# cbar_gal = plt.colorbar()
 
-					plt.scatter(skymap['RA'][cumprob<0.9], skymap['DEC'][cumprob<0.9], c=skymap['CUMPROBDENSITY'][cumprob<0.9], zorder=0)
-					xl, xr = plt.xlim()
-					# cbar = plt.colorbar()
+					# plt.scatter(skymap['RA'][cumprob<0.9], skymap['DEC'][cumprob<0.9], c=skymap['CUMPROBDENSITY'][cumprob<0.9], zorder=0)
+					# xl, xr = plt.xlim()
+					# # cbar = plt.colorbar()
 
-					plt.grid('both', ls='--', c='grey', alpha=0.5)
-					plt.xlim([xr, xl])
-					plt.xlabel('RA [deg]', fontsize=20)
-					plt.ylabel('Dec [deg]', fontsize=20)
-					plt.xticks(fontsize=20)
-					plt.yticks(fontsize=20)
-					# plt.tight_layout()
+					# plt.grid('both', ls='--', c='grey', alpha=0.5)
+					# plt.xlim([xr, xl])
+					# plt.xlabel('RA [deg]', fontsize=20)
+					# plt.ylabel('Dec [deg]', fontsize=20)
+					# plt.xticks(fontsize=20)
+					# plt.yticks(fontsize=20)
+					# # plt.tight_layout()
 
-					plt.subplot(122)
+					# plt.subplot(122)
 					#	Normalization of the cumulative probability
+					fig = plt.figure(figsize=(8, 6))
 					norm_factor = np.max(cumsum_prob_gal)
 					plt.plot(cumsum_prob_gal/norm_factor, '.-', mfc='w', mew=3, ms=10, lw=3, c='g', label=f"All ({len(cumsum_prob_gal)})", zorder=0)
 					plt.axhline(y=0.99*sum_prob_gal/norm_factor, ls='-', c='tomato', lw=3, alpha=1.0, label=f"99% ({len(simple_galcat[simple_galcat['confidence']<=0.99])})")
@@ -656,6 +800,7 @@ while True:
 
 					plt.tight_layout()
 					plt.savefig(f"{path_output}/cumulative_p3d_HostGalaxy.png", dpi=100,)
+					# plt.show()
 					plt.close()
 					#%%
 					# if (record['distmean'] < 1_000) & (record['area_90'] < 15_000):
@@ -855,6 +1000,11 @@ while True:
 
 							select_skygrid_cat = hstack([select_pointing_cat, select_pointing_polygon_cat])
 							if len(select_skygrid_cat) > 0:
+								#	ra, dec --> l, b
+								c_skygrid = SkyCoord(select_skygrid_cat['ra'], select_skygrid_cat['dec'], frame='icrs', unit='deg')
+								select_skygrid_cat['l'] = c_skygrid.galactic.l
+								select_skygrid_cat['b'] = c_skygrid.galactic.b
+								#	
 								select_skygrid_cat['n_hostgalaxy']: int = 0
 								select_skygrid_cat[probkey]: float = 0.0
 
@@ -894,25 +1044,95 @@ while True:
 								select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.9>cumsum_prob_skygrid] = 0.9
 								select_skygrid_cat['confidence'][np.max(cumsum_prob_skygrid)*0.5>cumsum_prob_skygrid] = 0.5
 
-								fig = plt.figure(figsize=(20, 8))
 								# fig = plt.figure(figsize=(40, 16))
 
 								title = f"{record['alert_type']}: {area_90.to_value(u.deg**2):.1f} "+r"$\rm deg^2$ "+f"for {obs}"
-								plt.subplot(121)
-								# if area_90.to(u.deg**2).value>50:
-								# 	only_center=True
+
+								#	
+								fig = plt.figure(figsize=(20, 12))
+								if most_probable_event == 'BBH':
+									cmap = 'hot'
+								elif most_probable_event in ['BNS', 'NSBH']:
+									cmap = 'viridis'
+								else:
+									cmap = 'Greys_r'
+
+								# 필요한 열 추출
+								ra_deg = skymap['RA']
+								dec_deg = skymap['DEC']
+
+								# 좌표 변환 (deg to rad)
+								ra_rad = np.radians(ra_deg)
+								dec_rad = np.radians(dec_deg)
+
+								# Healpix 맵 생성
+								nside = 2**7  # 원하는 해상도 (2의 거듭제곱)
+								npix = hp.nside2npix(nside)
+								hp_map = np.zeros(npix)
+
+								# 각 좌표에 해당하는 픽셀 값 설정
+								indices = hp.ang2pix(nside, theta=0.5 * np.pi - dec_rad, phi=ra_rad)
+								hp_map[indices] = skymap['PROBDENSITY']
+
+								hp.mollview(
+									hp_map,
+									title=f"{obs} Tiling for {record['superevent_id']}_{record['alert_type']}",
+									cbar=True, cmap=cmap,
+									flip='astro',
+									# rot=(90, -45),
+									coord=['E'],
+									unit=r'$\rm P_{3D}$',
+									# gal_cut=[-20,+20],
+									)
+
+								# hp.graticule(c='silver', alpha=0.5)  # 그리드 라인 추가
+								hp.graticule(dpar=30, dmer=30, coord='E', c='silver', alpha=0.5)  # 그리드 라인 추가
+
+								# KMTNet
+								# if len(select_skygrid_cat) < 100:
+								# 	colors = makeSpecColors(n=len(select_skygrid_cat))
 								# else:
-								# 	only_center=False
-								only_center=True
-								plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title=title, only_center=only_center, probkey=probkey)
-								xl, xr = plt.xlim()
-								plt.xlim([xr, xl])
-								plt.xticks(fontsize=20)
-								plt.yticks(fontsize=20)
-								plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
+								# 	colors = makeSpecColors(n=100)
+								allralist, alldeclist = DrawTiles(select_skygrid_cat)
+								for nn, (ralist, declist) in enumerate(zip(allralist, alldeclist)):
+									if nn > 10:
+										hp.projplot(ralist, declist, lonlat=True, c='w', lw=1, alpha=0.5)
+									else:
+										hp.projplot(ralist, declist, lonlat=True, c='r', lw=1, alpha=1.0, zorder=10)
+
+									#	TBD
+									# if nn < 100:
+									# 	hp.projplot(ralist, declist, lonlat=True, c=colors[nn], lw=1)
+									# else:
+									# 	hp.projplot(ralist, declist, lonlat=True, c=colors[-1], lw=1)
+
+								#	Sun (23.05.18)
+								hp.projplot(sun_ra.deg, sun_dec.deg, lonlat=True, c='gold', marker='o', ms=10, ls='none')
+								hp.projplot(sun_ra.deg, sun_dec.deg, lonlat=True, c='r', marker='o', ms=5, ls='none')
+
+								hp.graticule(c='silver', alpha=0.5)  # 그리드 라인 추가
+								plt.savefig(f"{path_output}/tiling_{obs}.png", dpi=100)
+								plt.close()
+								# plt.show()
 
 
-								plt.subplot(122)
+								# fig = plt.figure(figsize=(20, 8))
+								# plt.subplot(121)
+								# # if area_90.to(u.deg**2).value>50:
+								# # 	only_center=True
+								# # else:
+								# # 	only_center=False
+								# only_center=True
+								# plot_tiling_inorder(select_skygrid_cat, simple_galcat, skymap, title=title, only_center=only_center, probkey=probkey)
+								# xl, xr = plt.xlim()
+								# plt.xlim([xr, xl])
+								# plt.xticks(fontsize=20)
+								# plt.yticks(fontsize=20)
+								# plt.grid('both', color='silver', ls='--', lw=1, alpha=0.5)
+
+
+								# plt.subplot(122)
+								fig = plt.figure(figsize=(8, 6))
 								plt.plot(cumsum_prob_skygrid/np.max(cumsum_prob_skygrid), 'o-', mfc='w', mew=3, ms=10, lw=3, c='g')
 								# include 95%, 99% 
 								plt.axhline(y=0.99*sum_prob_skygrid/np.max(cumsum_prob_skygrid), ls='-', c='tomato', lw=3, alpha=0.75, label=f"99% ({len(select_skygrid_cat[select_skygrid_cat['confidence']<=0.99])})")
@@ -939,12 +1159,15 @@ while True:
 								plt.xticks(fontsize=20)
 								# plt.yticks(fontsize=20)
 								plt.yticks(np.arange(0, 1.01, 0.1), fontsize=20)
-
-
-
+								plt.savefig(f"{path_output}/tiling_{obs}_cumulative_dist.png", dpi=100)
 								plt.tight_layout()
-								plt.savefig(f"{path_output}/tiling_{obs}.png", dpi=100)
 								plt.close()
+
+
+
+								# plt.tight_layout()
+								# plt.savefig(f"{path_output}/tiling_{obs}.png", dpi=100)
+								# plt.close()
 
 								cat_meta_dict = {
 									"obs": obs,
@@ -1106,6 +1329,7 @@ while True:
 											cfield = [record['superevent_id']]*len(logtbl)
 											crarr = logtbl['ra']
 											cdecarr = logtbl['dec']
+											cid = logtbl['#id']
 
 											generate_KMTNet_obs_script(
 												cfield,
@@ -1114,6 +1338,7 @@ while True:
 												site,
 												date_str,
 												cbands,
+												cid,
 												path_save=path_output)
 										date += 1*u.day
 						#============================================================

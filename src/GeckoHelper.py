@@ -27,10 +27,29 @@ def count_skymap_within_fov(pointing_polygon_cat, skymap, confidence_limit):
 
 def is_condition_satisfied(record):
     is_classification_NS = 'NS' in record['event']['classification']
-    is_distmean_less = record['distmean'] < 1_000 # [Mpc]
-    is_area_NS_less = record['area_90'] < 15_000 # [deg2]
-    is_area_BH_less = record['area_90'] < 5_000 # [deg2]
+    is_burst = 'Burst' in record['event']['group']
+    is_distmean_less = record['distmean'] <= 1_000 # [Mpc]
+    is_area_NS_less = record['area_90'] <= 15_000 # [deg2]
+    is_area_BH_less = record['area_90'] <= 5_000 # [deg2]
+    is_area_BURST_less = record['area_90'] <= 100 # [deg2]
 
     return (is_classification_NS and is_distmean_less and is_area_NS_less) or (
         not is_classification_NS and is_distmean_less and is_area_BH_less
-    )
+    ) or (
+	    is_burst and is_distmean_less and is_area_BURST_less
+	)
+
+def DrawTiles(intbl):
+	allralist = []
+	alldeclist = []
+	for jj in np.arange(len(intbl)):
+		ralist = []
+		declist = []
+		for ii in [1, 2, 3, 4, 1]:
+			ra = intbl[f'ra{ii}'][jj]
+			dec = intbl[f'dec{ii}'][jj]
+			ralist.append(ra)
+			declist.append(dec)
+		allralist.append(ralist)
+		alldeclist.append(declist)
+	return allralist, alldeclist
