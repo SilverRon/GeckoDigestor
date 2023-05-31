@@ -562,7 +562,9 @@ while True:
 					else:
 						select_cat['stellar_mass'][select_cat['col36'].mask] = np.min(select_cat['col36'])
 					#	Extra probability
-					select_cat['prob_vol_x_stmass'] = min_max_normalize(select_cat['stellar_mass']*select_cat['prob_vol'])
+					_prob_value = select_cat['stellar_mass']*select_cat['prob_vol']
+					# select_cat['prob_vol_x_stmass'] = min_max_normalize(_prob_value)
+					select_cat['prob_vol_x_stmass'] = (_prob_value-np.min(_prob_value))/(np.max(_prob_value)-np.min(_prob_value))
 
 					# %%
 					#	Key to sort the candidate
