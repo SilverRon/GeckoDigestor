@@ -5,10 +5,10 @@
 from mainconfig import mainConfig
 from mainobserver import mainObserver
 from maintarget import mainTarget
-
+from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.table import Table
-from astropy.coordinates import SkyCoord
+
 from astropy.io import ascii
 import astropy.units as u
 
@@ -21,7 +21,6 @@ import os
 
 from astroplan import AltitudeConstraint, AirmassConstraint, MoonSeparationConstraint, AtNightConstraint
 from astroplan import observability_table
-
 
 class ObsScheduler(mainConfig):
     """
@@ -37,6 +36,7 @@ class ObsScheduler(mainConfig):
     (23.04.27 11:10) #Minor change // make_ACPscript_LSGT, fix for the case no target exist in split_table
     (23.05.02) ""Version 3.0"", Running time decreased.
     (23.05.03) Fix for config setting (name_project added)
+    (23.06.02) (critical) Fix for the coordinate transformation to string (00:30:30 -> -00:30:30)
         
     ==========
     Parameters
@@ -114,7 +114,6 @@ class ObsScheduler(mainConfig):
         - scheduled: scheduled targetlist 
     
     """
-
     def __init__(self,
                     target_db,
                     date = Time.now(),
@@ -156,7 +155,6 @@ class ObsScheduler(mainConfig):
             schedule.unscheduled = schedule.observable[schedule.observable['scheduled'] == False]
 
             def calculate_tot_exptime(target):
-                
                 exptimes = str(target['exptime']).split(',')
                 counts = str(target['count']).split(',')
                 tot_exptime = 0
@@ -275,18 +273,26 @@ class ObsScheduler(mainConfig):
                             schedule.all = update_status_obs_tbl(schedule.all, target = target_best)
                         else:
                             if duplicate_when_empty:
-                                previous_idx = (schedule.observable['id'] == target_best['id'])
-                                extended_target = schedule.observable[~previous_idx]
-                                all_score = self.scorer(obs_tbl = extended_target, utctime = time_observation, telescope_altaz = telescope_altaz, duplicate = duplicate_when_empty)
+                                all_targets = schedule.scheduled.dropna(subset = ['score'])
+                                last_targets = all_targets[-3:]
+                                duplicate_target = schedule.observable[~schedule.observable['id'].isin(last_targets['id'])]
+                                #previous_idx = (schedule.observable['id'] == target_best['id'])
+                                #extended_target = schedule.observable[~previous_idx]
+                                all_score = self.scorer(obs_tbl = duplicate_target, utctime = time_observation, telescope_altaz = telescope_altaz, duplicate = duplicate_when_empty)
                                 if np.sum(all_score) > 0:
                                     best_idx = np.argmax(all_score)
-                                    target_best = extended_target.iloc[best_idx] 
+                                    target_best = duplicate_target.iloc[best_idx] 
+                                    target_best_score = all_score.iloc[best_idx]
+                                    schedule.scheduled, time_observation = insert_schedule(obs_start_time = time_observation, scheduled_table=schedule.scheduled, target = target_best, score = target_best_score)
+
                                 else:
                                     target_best = transitioner(name = f'empty_target', exptime = 600, count = 1)
+                                    schedule.scheduled, time_observation = insert_schedule(obs_start_time = time_observation, scheduled_table=schedule.scheduled, target = target_best)
                             else:
                                 target_best = transitioner(name = f'empty_target', exptime = 600, count = 1)
-                            schedule.scheduled, time_observation = insert_schedule(obs_start_time = time_observation, scheduled_table=schedule.scheduled, target = target_best)
-                    
+                                schedule.scheduled, time_observation = insert_schedule(obs_start_time = time_observation, scheduled_table=schedule.scheduled, target = target_best)
+
+            
                     # Dawn flat
                     if flat_dawn:
                         schedule.scheduled, time_observation = insert_schedule(obs_start_time = time_observation, scheduled_table = schedule.scheduled, target = target_flat_dawn, score = 1)
@@ -388,7 +394,7 @@ class ObsScheduler(mainConfig):
             target_table = Table().from_pandas(target_table_pd)
             calib_table = Table().from_pandas(calib_table_pd)
             n_obj = len(set(target_table['obj']))
-            n_obs = len(set(target_table['id']))
+            n_obs = len(set(target_table['obs_start']))
             
             time_astronomical_twilight = self.obsnight.sunset_astro
             time_astronomical_dawn = self.obsnight.sunrise_astro
@@ -504,8 +510,9 @@ class ObsScheduler(mainConfig):
         moonsep = self._get_moonsep(target_table)
         target_table['maxalt'] = maxalt
         target_table['transit'] = transittime
-        target_table['moonsep'] = moonsep    
-        target_table['scheduled'] = False     
+        target_table['moonsep'] = moonsep
+        if not 'scheduled' in target_table.colnames:
+            target_table['scheduled'] = False     
         target_table['id'] = [uuid.uuid4().hex for i in range(len(target_table))]
         alltarget.observable = self._get_target_observable(obs_tbl = target_table, fraction_observable = 0.15)
         alltarget.all = target_table
@@ -644,14 +651,24 @@ class ObsScheduler(mainConfig):
     def _match_coord_to_string(self, 
                                 coords : SkyCoord):
         # This is more than 50x faster than coords.to_string(sep = ':')
-        ra_hour = coords.ra.hms.h
-        ra_minute = coords.ra.hms.m
-        ra_seconds = coords.ra.hms.s
-        dec_deg = coords.dec.dms.d
-        dec_minute = np.abs(coords.dec.dms.m)
-        dec_seconds = np.abs(coords.dec.dms.s)
-        ra_string = list(map(lambda h,m,s: '%02d:%02d:%02d'%(h, m, s), ra_hour,ra_minute,ra_seconds))
-        dec_string = list(map(lambda d,m,s: '%02d:%02d:%02d'%(d, m, s), dec_deg,dec_minute,dec_seconds))
+        def string_ra(ra):
+            ra_hour = ra.hms.h
+            ra_minute = ra.hms.m
+            ra_seconds = ra.hms.s
+            ra_string = '%02d:%02d:%02d'%(ra_hour, ra_minute, ra_seconds)
+            return ra_string
+            
+        def string_dec(dec):
+            dec_deg = np.abs(dec.dms.d)
+            dec_minute = np.abs(dec.dms.m)
+            dec_seconds = np.abs(dec.dms.s)
+            if dec.value < 0:
+                dec_string = '-%02d:%02d:%02d'%(dec_deg, dec_minute, dec_seconds)
+            else:
+                dec_string = '%02d:%02d:%02d'%(dec_deg, dec_minute, dec_seconds)
+            return dec_string
+        ra_string = list(map(string_ra, coords.ra))
+        dec_string = list(map(string_dec, coords.dec))
         return ra_string, dec_string
 
 
@@ -1157,65 +1174,50 @@ class ScriptMaker(mainConfig):
     
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ################################################################################################################################################################################################
 ################################################################################################################################################################################################
 ################################################################################################################################################################################################
 
 #%% SAMPLE Code (ToO)
+
 if __name__ == '__main__':
     dirlist = os.listdir('../Archive/')
     dirlist.sort()
     target = dirlist[1]
     name_project = 'GECKO'
     filename_prefix = 'ToO_'
-    date = Time('2018-11-01')
     log_savepath = './log/'
+    date = Time.now()
     # ACP config
     ACP_savepath = f'./ACPscript/{target}/'
     # RTS config
     rts_savepath = f'./rts/{target}/'
     n_target_for_each_timeslot = 2
 
-    def get_isfile_and_data(target, name_telescope):
+    # def get_isfile_and_data(target, name_telescope):
 
 
-        host_file_key = f'../Archive/{target}/HostGalaxyCatalog_90.csv'
-        is_host = os.path.isfile(host_file_key)
-        grid_file_key = f'../Archive/{target}/SkyGridCatalog_{name_telescope}_90.csv'
-        is_grid = os.path.isfile(grid_file_key)
+    #     host_file_key = f'../Archive/{target}/HostGalaxyCatalog_90.csv'
+    #     is_host = os.path.isfile(host_file_key)
+    #     grid_file_key = f'../Archive/{target}/SkyGridCatalog_{name_telescope}_90.csv'
+    #     is_grid = os.path.isfile(grid_file_key)
 
-        data_host = Table()
-        data_targetted = Table()
-        if is_host:
-            data_host = ascii.read(host_file_key)
-        if is_grid:
-            data_targetted = ascii.read(grid_file_key)
-        result = dict()
-        result['host'] = dict()
-        result['host']['exist'] = is_host
-        result['host']['data'] = data_host
-        result['grid'] = dict()
-        result['grid']['exist'] = is_grid
-        result['grid']['data'] = data_targetted
-        return result
+    #     data_host = Table()
+    #     data_targetted = Table()
+    #     if is_host:
+    #         data_host = ascii.read(host_file_key)
+    #     if is_grid:
+    #         data_targetted = ascii.read(grid_file_key)
+    #     result = dict()
+    #     result['host'] = dict()
+    #     result['host']['exist'] = is_host
+    #     result  = data_host
+    #     result['grid'] = dict()
+    #     result['grid']['exist'] = is_grid
+    #     result  = data_targetted
+    #     return result
 
-    print(f'len(targetted) = {len(get_isfile_and_data(target=target, name_telescope="KCT")["host"]["data"])}')
+    # print(f'len(targetted) = {len(get_isfile_and_data(target=target, name_telescope="KCT")["host"]["data"])}')
     
     
     ####################### 
@@ -1223,8 +1225,11 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'KCT'
-    data = get_isfile_and_data(target = target, name_telescope= 'KCT')
-
+    data = ascii.read('./SkyGridCatalog_KCT_90_select.csv')
+    data['filter'] = "r"
+    data['count'] = '15'
+    data['exptime'] = '120'
+    date = Time.now()
     """
     Input
         1. targetted observation (HostGalaxyCatalog_90.csv)
@@ -1233,41 +1238,38 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = False)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = False)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-        # See log file to check the observability of the targets
+    scheduler_host = ObsScheduler(target_db= data,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = False)
+    scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+
+    scheduler_grid = ObsScheduler(target_db= data,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = False)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+    # See log file to check the observability of the targets
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
@@ -1278,7 +1280,11 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'RASA36'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
+    data = ascii.read('./test/SkyGridCatalog_RASA36_90.csv')
+    #data = ascii.read('./SkyGridCatalog_RASA36_90_fromKMTNet.csv')
+    #data['count'] = '30'
+    #data['exptime'] = '60'
+    date = Time.now()
 
     """
     Input
@@ -1288,42 +1294,38 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
+    rasalog = scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = True)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-        # See log file to check the observability of the targets
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    #plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    #plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
 
     
@@ -1331,7 +1333,7 @@ if __name__ == '__main__':
     # LSGT (ACP)
     #######################
     name_telescope = 'LSGT'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
+    data = ascii.read('./HostGalaxyCatalog_90.csv')
 
     """
     Input
@@ -1341,42 +1343,38 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_ACPscript_LSGT(filename_prefix= filename_prefix, savepath = ACP_savepath, period_script= 3)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_ACPscript_LSGT(filename_prefix= filename_prefix, savepath = ACP_savepath, period_script= 3)
+    scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_ACPscript_LSGT(filename_prefix= filename_prefix, savepath = ACP_savepath, period_script= 3)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-        # See log file to check the observability of the targets
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_ACPscript_LSGT(filename_prefix= filename_prefix, savepath = ACP_savepath, period_script= 3)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
@@ -1387,7 +1385,7 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'LOAO'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
+    data = ascii.read('./HostGalaxyCatalog_90.csv')
 
     """
     Input
@@ -1397,42 +1395,38 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-        # See log file to check the observability of the targets
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
@@ -1442,7 +1436,7 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'CBNUO'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
+    data = ascii.read('./S230521k/SkyGridCatalog_CBNUO_90.csv')
 
     """
     Input
@@ -1452,42 +1446,38 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-        # See log file to check the observability of the targets
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
@@ -1498,7 +1488,7 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'SAO'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
+    data = ascii.read('./SkyGridCatalog_KMTNet_90.csv')
 
     """
     Input
@@ -1508,42 +1498,38 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-        # See log file to check the observability of the targets
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
@@ -1554,8 +1540,10 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'KMTNet'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
+    data = ascii.read('./SkyGridCatalog_KMTNet_90.csv')
+    data = ascii.read('./rts/MS181101ab_INITIAL/230519_KMTNet_CTIO.log')
 
+    
     n_target_for_each_timeslot = 1 ##### IMPORTANT?? #####
     name_telescope = 'KMTNet_CTIO'
     """
@@ -1566,42 +1554,40 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-        # See log file to check the observability of the targets
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_host.write_log(n_target = 10000, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+
+
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_grid.write_log(n_target = 10000, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
@@ -1612,8 +1598,7 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'KMTNet'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
-
+    data = ascii.read('./SkyGridCatalog_KMTNet_90.csv')
     n_target_for_each_timeslot = 1 ##### IMPORTANT?? #####
     name_telescope = 'KMTNet_SAAO'
     """
@@ -1624,42 +1609,40 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-        # See log file to check the observability of the targets
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+
+
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
@@ -1670,7 +1653,7 @@ if __name__ == '__main__':
     #######################
     
     name_telescope = 'KMTNet'
-    data = get_isfile_and_data(target = target, name_telescope= name_telescope)
+    data = ascii.read('./SkyGridCatalog_KMTNet_90.csv')
 
     n_target_for_each_timeslot = 1 ##### IMPORTANT?? #####
     name_telescope = 'KMTNet_SSO'
@@ -1682,67 +1665,55 @@ if __name__ == '__main__':
         1. ACPscript
         2. log
     """
-    if data['host']['exist']:
-        scheduler_host = ObsScheduler(target_db= data['host']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_host = ScriptMaker(scheduler_host)
-        # Action
-        scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    scheduler_host = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_host = ScriptMaker(scheduler_host)
+    # Action
+    scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_host.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
 
-    if data['grid']['exist']:
-        scheduler_grid = ObsScheduler(target_db= data['grid']['data'],
-                                        date = date,
-                                        name_project = name_project,
-                                        name_telescope = name_telescope,
-                                        entire_night = False)
-        # Define target
-        scriptmaker_grid = ScriptMaker(scheduler_grid)
-        # Action
-        scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-        scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
-        scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
-        # See log file to check the observability of the targets
+    scheduler_grid = ObsScheduler(target_db= data ,
+                                    date = date,
+                                    name_project = name_project,
+                                    name_telescope = name_telescope,
+                                    entire_night = False)
+    # Define target
+    scriptmaker_grid = ScriptMaker(scheduler_grid)
+    # Action
+    scriptmaker_grid.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
+    scriptmaker_grid.write_log(n_target = 300, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+    scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
+    # See log file to check the observability of the targets
     # Check
     plt.figure(dpi = 300)
     plt.xlabel('ra')
     plt.ylabel('dec')
-    if data['grid']['exist']:
-        plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
-        plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
-    if data['host']['exist']:
-        plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
-        plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
+    plt.scatter(scheduler_grid.target.all['ra'], scheduler_grid.target.all['dec'], c = 'r', label ='grid', alpha = 0.3, s = 2)
+    plt.scatter(scriptmaker_grid.result.scheduled['ra'], scriptmaker_grid.result.scheduled['dec'], c = 'b', label =f'scheduled[grid],{len(scriptmaker_grid.result.scheduled)}')
+    plt.scatter(scheduler_host.target.all['ra'], scheduler_host.target.all['dec'], c = 'b', label ='host', alpha = 0.1, s = 2)
+    plt.scatter(scriptmaker_host.result.scheduled['ra'], scriptmaker_host.result.scheduled['dec'], c = 'r', label =f'scheduled[host],{len(scriptmaker_host.result.scheduled)}')
     plt.legend()
     maintarget = mainTarget(name_telescope=scheduler_host.name_telescope, name_project= scheduler_host.name_project, observer = scheduler_host.observer, target_ra = scheduler_host.target.all['ra'][0], target_dec = scheduler_host.target.all['dec'][0])
     maintarget.staralt(utctime = date)
-    
+
 
 #%% SAMPLE (IMSNG)
 if __name__ == '__main__':
     ####################### KCT (IMSNG)
-    date = Time.now() +5*u.day
+    date = Time.now() + 3 * u.day
     ACP_savepath = f'./IMSNG/'
     name_telescope = 'KCT'
     name_project = 'IMSNG'
     filename_prefix = 'IMSNG_'
     duplicate_when_empty = True
-    data = ascii.read('./alltarget_prior2.dat', format = 'fixed_width')
+    data = ascii.read('./alltarget_prior15.dat', format = 'fixed_width')
     data['weight'] = data['priority']
 
-    """
-    Input
-        1. targetted observation (HostGalaxyCatalog_90.csv)
-        2. tiled obsevation (SkyGridCatalog_*_90.csv)
-    Output 
-        1. ACPscript
-        2. log
-    """
     scheduler_host = ObsScheduler(target_db= data,
                                         date = date,
                                         name_project = name_project,
@@ -1754,11 +1725,11 @@ if __name__ == '__main__':
     scriptmaker_host.write_ACPscript_KCT(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = True, duplicate_when_empty= duplicate_when_empty)
     scriptmaker_host.write_log(n_target = 300, sort_keyword = 'priority', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
     scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
+#%%
 
-    '''
     ######################## LSGT (IMSNG)
     date = Time.now()
-    ACP_savepath = f'./ACPscript/'
+    ACP_savepath = f'./IMSNG/'
     name_telescope = 'LSGT'
     project = 'IMSNG'
     filename_prefix = 'IMSNG_'
@@ -1787,7 +1758,7 @@ if __name__ == '__main__':
     
     ######################## RASA36 (IMSNG)
     date = Time.now()
-    ACP_savepath = f'./ACPscript/'
+    ACP_savepath = f'./IMSNG/'
     name_telescope = 'RASA36'
     project = 'IMSNG'
     filename_prefix = 'IMSNG_'
@@ -1813,5 +1784,3 @@ if __name__ == '__main__':
     scriptmaker_host.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath, shutdown = True, duplicate_when_empty= duplicate_when_empty)
     scriptmaker_host.write_log(n_target = 300, sort_keyword = 'priority', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
     scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-    '''
-# %%

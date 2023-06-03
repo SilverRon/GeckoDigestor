@@ -1,0 +1,25 @@
+; Prepare for the observation (KCT)
+#WAITUNTIL 1, 06/01/23 22:11:18
+
+; Cooling
+#CHILL -10, 1.0
+
+; Calibration frames
+
+; Start of the observation
+#WAITUNTIL 1, 06/01/23 23:15:14
+
+; Targeting
+#COUNT 124,124
+#INTERVAL 210,210
+#BINNING 1,1
+#FILTER g,r
+#NOPREVIEW 
+#NOSOLVE
+#NOPOINTING
+S230601bf	18:58:26	-21:00:47
+
+#QUITAT 06/02/23 10:07:35
+
+; Closing
+#SHUTDOWN

@@ -353,12 +353,17 @@ class mainTarget(mainConfig):
             utctime = Time.now()
         if not isinstance(utctime, Time):
             utctime = Time(utctime)
+
+        sunrisetime = self._observer.tonight(time = utctime, horizon = 0)[1]
+        sunsettime = self._observer.sun_settime(sunrisetime, mode = 'previous', horizon= 0)
+        astro_sunrisetime = self._observer.sun_risetime(sunrisetime, mode = 'previous', horizon= -18)
+        astro_sunsettime = self._observer.sun_settime(sunrisetime, mode = 'previous', horizon= -18)        
         
-        astro_sunrisetime = self._observer.tonight(time = utctime)[1]
-        astro_sunsettime = self._observer.sun_settime(astro_sunrisetime, mode = 'nearest')
-        
-        sunsettime = self._observer.sun_settime(utctime, horizon = 0)
-        sunrisetime = self._observer.sun_risetime(sunsettime, horizon = 0, mode = 'next')
+        #astro_sunrisetime = self._observer.tonight(time = utctime)[1]
+        #astro_sunsettime = self._observer.sun_settime(astro_sunrisetime, mode = 'nearest')
+
+        #sunsettime = self._observer.sun_settime(utctime, horizon = 0)
+        #sunrisetime = self._observer.sun_risetime(sunsettime, horizon = 0, mode = 'next')
         time_range_start, time_range_end = sunsettime.datetime - datetime.timedelta(hours = 2), sunrisetime.datetime + datetime.timedelta(hours = 2)
         time_axis = np.arange(time_range_start, time_range_end, datetime.timedelta(minutes = 5))
         moon_altaz = self._observer.moon_altaz(time_axis)
@@ -377,7 +382,7 @@ class mainTarget(mainConfig):
         plt.axvline(x=astro_sunsettime.datetime, linestyle = '-', c='k', linewidth = 0.5)
         plt.axvline(x=sunrisetime.datetime, linestyle = '--', c='k', linewidth = 0.5)
         plt.axvline(x=sunsettime.datetime, linestyle = '--', c='k', linewidth = 0.5)
-        plt.text(astro_sunsettime.datetime, 92, 'Twilight', fontsize = 10)
+        #plt.text(astro_sunsettime.datetime, 92, 'Twilight', fontsize = 10)
         plt.text(sunsettime.datetime-datetime.timedelta(minutes=00), 92, 'S.set', fontsize = 10)
         plt.text(sunrisetime.datetime-datetime.timedelta(minutes=00), 92, 'S.rise', fontsize = 10)
         plt.xlim(time_range_start - datetime.timedelta(hours = 1), time_range_end + datetime.timedelta(hours = 1))
