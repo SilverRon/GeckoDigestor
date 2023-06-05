@@ -557,10 +557,11 @@ while True:
 					select_cat['stellar_mass'] = select_cat['col36']
 					select_cat['flag_stmass'] = ~select_cat['col36'].mask
 					#	Check size of masked rows
-					if select_cat['stellar_mass'][select_cat['col36'].mask].size:
-						pass
-					else:
-						select_cat['stellar_mass'][select_cat['col36'].mask] = np.min(select_cat['col36'])
+					# if select_cat['stellar_mass'][select_cat['col36'].mask].size:
+					# 	pass
+					# else:
+					# 	select_cat['stellar_mass'][select_cat['col36'].mask] = np.min(select_cat['col36'])
+					select_cat['stellar_mass'][select_cat['col36'].mask] = np.min(select_cat['col36'])
 					#	Extra probability
 					_prob_value = select_cat['stellar_mass']*select_cat['prob_vol']
 					# select_cat['prob_vol_x_stmass'] = min_max_normalize(_prob_value)
@@ -737,9 +738,9 @@ while True:
 					# else:
 					# 	colors = makeSpecColors(n=100)
 
+					# hp.projplot(simple_galcat['ra'][simple_galcat['confidence']==0.5], simple_galcat['dec'][simple_galcat['confidence']==0.5], lonlat=True, c='r', marker='+', ls='none', alpha=1.0, zorder=10)
 					hp.projplot(simple_galcat['ra'][:10], simple_galcat['dec'][:10], lonlat=True, c='r', marker='+', ls='none', alpha=1.0, zorder=10)
 					hp.projplot(simple_galcat['ra'][10:100], simple_galcat['dec'][10:100], lonlat=True, c='w', marker='+', ls='none', alpha=0.5, zorder=9)
-					# hp.projplot(simple_galcat['ra'][100:], simple_galcat['dec'][100:], lonlat=True, c='w', marker='.', ls='none', alpha=0.01)
 
 					#	Sun (23.05.18)
 					hp.projplot(sun_ra.deg, sun_dec.deg, lonlat=True, c='gold', marker='o', ms=10, ls='none')
@@ -751,9 +752,9 @@ while True:
 					plt.savefig(f"{path_output}/HostGalaxy.png", dpi=100,)
 
 					# plt.show()
-					plt.close()
 
 					# %%
+					plt.close()
 					# fig = plt.figure(figsize=(20, 8))
 					# fig = plt.figure(figsize=(40, 16))
 
@@ -803,8 +804,8 @@ while True:
 					plt.tight_layout()
 					plt.savefig(f"{path_output}/cumulative_p3d_HostGalaxy.png", dpi=100,)
 					# plt.show()
-					plt.close()
 					#%%
+					plt.close()
 					# if (record['distmean'] < 1_000) & (record['area_90'] < 15_000):
 					# if (('NS' in record['event']['classification'] & record['distmean'] < 1_000) & (record['area_90'] < 15_000)) | (('NS' not in record['event']['classification']) & (record['distmean'] < 1_000) & (record['area']<5_000)):
 					if is_condition_satisfied(record):
@@ -830,6 +831,7 @@ while True:
 						ACP_savepath = f"{path_output}/"
 						rts_savepath = f"{path_output}/"
 						n_target_for_each_timeslot = 2
+						ngalcut = 1000
 						for i in range(subsequent_days):
 							#------------------------------------------------------------
 							#	LSGT
@@ -856,8 +858,14 @@ while True:
 								_simple_galcat['exptime'] = f"{exp_time}"
 								_simple_galcat['count'] = f"{obs_count}"
 								#
+								if len(_simple_galcat) > ngalcut:
+									incat = _simple_galcat[_simple_galcat['confidence']==0.5]
+									# or
+									# incat = _simple_galcat[:ngalcut]
+								else:
+									incat = _simple_galcat
 								scheduler_host = ObsScheduler(
-									target_db=_simple_galcat,
+									target_db = incat,
 									date = date,
 									name_project = name_project,
 									name_telescope = name_telescope,
@@ -867,7 +875,8 @@ while True:
 								scriptmaker_host = ScriptMaker(scheduler_host)
 								# Action
 								scriptmaker_host.write_ACPscript_LSGT(filename_prefix=filename_prefix, savepath = ACP_savepath, period_script= 3)
-								scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+								# scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
+								scriptmaker_host.write_log(sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
 								# logtbl = scriptmaker_host.result.scheduled
 								# logtbl.write(f"{path_output}/{date}_{name_telescope}.log", format="ascii.fixed_width")
 								scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
@@ -902,8 +911,15 @@ while True:
 								# _simple_galcat['exptime'] = f"{exp_time},{exp_time}"
 								# _simple_galcat['count'] = f"{obs_count},{obs_count}"
 								#
+
+								if len(_simple_galcat) > ngalcut:
+									incat = _simple_galcat[_simple_galcat['confidence']==0.5]
+									# or
+									# incat = _simple_galcat[:ngalcut]
+								else:
+									incat = _simple_galcat
 								scheduler_host = ObsScheduler(
-									target_db= _simple_galcat,
+									target_db = incat,
 									date = date,
 									name_project = name_project,
 									name_telescope = name_telescope,
@@ -913,7 +929,8 @@ while True:
 								scriptmaker_host = ScriptMaker(scheduler_host)
 								# Action
 								scriptmaker_host.write_rts(filename_prefix= filename_prefix, savepath = rts_savepath, n_target_for_each_timeslot= n_target_for_each_timeslot)
-								scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+								# scriptmaker_host.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
+								scriptmaker_host.write_log(sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= rts_savepath, format_ = 'ascii.fixed_width', return_ = False)
 								scriptmaker_host.show(save = True, filename_prefix = filename_prefix, savepath = rts_savepath)
 
 								# logtbl = scriptmaker_host.result.scheduled
@@ -949,9 +966,15 @@ while True:
 								# _simple_galcat['count'] = f"{obs_count},{obs_count}"
 								_simple_galcat['exptime'] = f"{exp_time}"
 								_simple_galcat['count'] = f"{obs_count}"
-								#
+
+								if len(_simple_galcat) > ngalcut:
+									incat = _simple_galcat[_simple_galcat['confidence']==0.5]
+									# or
+									# incat = _simple_galcat[:ngalcut]
+								else:
+									incat = _simple_galcat
 								scheduler_host = ObsScheduler(
-									target_db= _simple_galcat,
+									target_db = incat,
 									date = date,
 									name_project = name_project,
 									name_telescope = name_telescope,
@@ -1026,6 +1049,8 @@ while True:
 									select_skygrid_cat['n_hostgalaxy'][nn] = n_hostgalaxy_points
 									select_skygrid_cat[probkey][nn] = total_prob_polygon
 
+								min_prob = np.min(select_skygrid_cat[probkey][~np.isnan(select_skygrid_cat[probkey])])
+								select_skygrid_cat[probkey][np.isnan(select_skygrid_cat[probkey])] = min_prob
 
 								select_skygrid_cat.sort(probkey, reverse=True)
 								for key in select_skygrid_cat.keys():
@@ -1096,23 +1121,20 @@ while True:
 								# else:
 								# 	colors = makeSpecColors(n=100)
 								allralist, alldeclist = DrawTiles(select_skygrid_cat)
+								#	To reduce the computing time
+								if obs == 'KCT':
+									allralist, alldeclist = allralist[:100], alldeclist[:100]
 								for nn, (ralist, declist) in enumerate(zip(allralist, alldeclist)):
 									if nn > 10:
 										hp.projplot(ralist, declist, lonlat=True, c='w', lw=1, alpha=0.5)
 									else:
 										hp.projplot(ralist, declist, lonlat=True, c='r', lw=1, alpha=1.0, zorder=10)
 
-									#	TBD
-									# if nn < 100:
-									# 	hp.projplot(ralist, declist, lonlat=True, c=colors[nn], lw=1)
-									# else:
-									# 	hp.projplot(ralist, declist, lonlat=True, c=colors[-1], lw=1)
-
 								#	Sun (23.05.18)
 								hp.projplot(sun_ra.deg, sun_dec.deg, lonlat=True, c='gold', marker='o', ms=10, ls='none')
 								hp.projplot(sun_ra.deg, sun_dec.deg, lonlat=True, c='r', marker='o', ms=5, ls='none')
 
-								hp.graticule(c='silver', alpha=0.5)  # 그리드 라인 추가
+								hp.graticule(c='silver', alpha=0.5) # 그리드 라인 추가
 								plt.savefig(f"{path_output}/tiling_{obs}.png", dpi=100)
 								plt.close()
 								# plt.show()
