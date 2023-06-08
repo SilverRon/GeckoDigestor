@@ -91,6 +91,7 @@ indx_smnet = np.where(
 
 print("Waiting for a GW alert...")
 start_time = time.time()
+# %%
 while True:
 
 	elapsed_time = time.time() - start_time
@@ -1018,12 +1019,13 @@ while True:
 
 							# - count the number of pixels within 90% confidence area
 							# 	- Full search 3.9s
+							skygrid_cat = hstack([pointing_cat, pointing_polygon_cat])
+							indx_select_skygrid = count_skymap_within_fov(skygrid_cat, skymap, confidence_limit)
+							# select_pointing_cat = pointing_cat[indx_select_skygrid]
+							# select_pointing_polygon_cat = pointing_polygon_cat[indx_select_skygrid]
 
-							indx_select_skygrid = count_skymap_within_fov(pointing_polygon_cat, skymap, confidence_limit)
-							select_pointing_cat = pointing_cat[indx_select_skygrid]
-							select_pointing_polygon_cat = pointing_polygon_cat[indx_select_skygrid]
-
-							select_skygrid_cat = hstack([select_pointing_cat, select_pointing_polygon_cat])
+							# select_skygrid_cat = hstack([select_pointing_cat, select_pointing_polygon_cat])
+							select_skygrid_cat = skygrid_cat[indx_select_skygrid]
 							if len(select_skygrid_cat) > 0:
 								#	ra, dec --> l, b
 								c_skygrid = SkyCoord(select_skygrid_cat['ra'], select_skygrid_cat['dec'], frame='icrs', unit='deg')
@@ -1033,21 +1035,64 @@ while True:
 								select_skygrid_cat['n_hostgalaxy']: int = 0
 								select_skygrid_cat[probkey]: float = 0.0
 
-								print(f"Number of points in selected pointing polygon: {len(select_pointing_polygon_cat)}")
+								# print(f"Number of points in selected pointing polygon: {len(select_pointing_polygon_cat)}")
+								print(f"Number of points in selected pointing polygon: {len(select_skygrid_cat)}")
 
-								hostgalaxy90_point = PixCoord(simple_galcat['ra'], simple_galcat['dec'])
+								#	Old method
+								# hostgalaxy90_point = PixCoord(simple_galcat['ra'], simple_galcat['dec'])
+								# for nn, (ra, ra1, ra2, ra3, ra4, dec, dec1, dec2, dec3, dec4) in enumerate(zip(select_skygrid_cat['ra'], select_skygrid_cat['ra1'], select_skygrid_cat['ra2'], select_skygrid_cat['ra3'], select_skygrid_cat['ra4'], select_skygrid_cat['dec'], select_skygrid_cat['dec1'], select_skygrid_cat['dec2'], select_skygrid_cat['dec3'], select_skygrid_cat['dec4'])):
+								# 	#	FoV Polygon
+								# 	vertices = PixCoord([ra1, ra2, ra3, ra4], [dec1, dec2, dec3, dec4],)
+								# 	region_pix = PolygonPixelRegion(vertices=vertices)
 
-								for nn, (ra1, ra2, ra3, ra4, dec1, dec2, dec3, dec4) in enumerate(zip(select_skygrid_cat['ra1'], select_skygrid_cat['ra2'], select_skygrid_cat['ra3'], select_skygrid_cat['ra4'], select_skygrid_cat['dec1'], select_skygrid_cat['dec2'], select_skygrid_cat['dec3'], select_skygrid_cat['dec4'])):
-									#	FoV Polygon
-									vertices = PixCoord([ra1, ra2, ra3, ra4], [dec1, dec2, dec3, dec4],)
-									region_pix = PolygonPixelRegion(vertices=vertices)
-
-									n_hostgalaxy_points = len(simple_galcat[region_pix.contains(hostgalaxy90_point)])
-									total_prob_polygon = np.sum(simple_galcat[probkey][region_pix.contains(hostgalaxy90_point)])
-									# print(nn, n_hostgalaxy_points, total_prob_polygon)
+								# 	n_hostgalaxy_points = len(simple_galcat[region_pix.contains(hostgalaxy90_point)])
+								# 	total_prob_polygon = np.sum(simple_galcat[probkey][region_pix.contains(hostgalaxy90_point)])
+								# 	# print(nn, n_hostgalaxy_points, total_prob_polygon)
 									
-									select_skygrid_cat['n_hostgalaxy'][nn] = n_hostgalaxy_points
-									select_skygrid_cat[probkey][nn] = total_prob_polygon
+								# 	select_skygrid_cat['n_hostgalaxy'][nn] = n_hostgalaxy_points
+								# 	select_skygrid_cat[probkey][nn] = total_prob_polygon
+
+
+								for nn, (ra, ra1, ra2, ra3, ra4, dec, dec1, dec2, dec3, dec4) in enumerate(zip(select_skygrid_cat['ra'], select_skygrid_cat['ra1'], select_skygrid_cat['ra2'], select_skygrid_cat['ra3'], select_skygrid_cat['ra4'], select_skygrid_cat['dec'], select_skygrid_cat['dec1'], select_skygrid_cat['dec2'], select_skygrid_cat['dec3'], select_skygrid_cat['dec4'])):
+
+									if ra == 0.0:
+										ra3 -= 360
+										ra4 -= 360
+									else:
+										pass
+
+									ramin = min([ra1, ra2, ra3, ra4])
+									ramax = max([ra1, ra2, ra3, ra4])
+									decmin = min([dec1, dec2, dec3, dec4])
+									decmax = max([dec1, dec2, dec3, dec4])
+									# print(f"Dec: {decmin:.3f} to {decmax:.3f} dec")
+									_simple_galcat = simple_galcat[
+										(simple_galcat['ra']>=ramin-5) &
+										(simple_galcat['ra']<=ramax+5) &
+										(simple_galcat['dec']>=decmin) &
+										(simple_galcat['dec']<=decmax)
+										].copy()
+									# plt.plot(simple_galcat['ra'], simple_galcat['dec'], '.')
+									# plt.plot(_simple_galcat['ra'], _simple_galcat['dec'], '.')
+
+									if len(_simple_galcat) > 0:
+										#	FoV Polygon (pixel)
+										hostgalaxy90_point = PixCoord(_simple_galcat['ra'], _simple_galcat['dec'])
+										vertices = PixCoord([ra1, ra2, ra3, ra4], [dec1, dec2, dec3, dec4],)
+										region_pix = PolygonPixelRegion(vertices=vertices)
+										
+										#	FoV Polygon (skycoord)
+										# hostgalaxy90_point = SkyCoord(_simple_galcat['ra'], _simple_galcat['dec'], unit='deg', frame='icrs')
+										# vertices = SkyCoord([ra1, ra2, ra3, ra4, ra1], [dec1, dec2, dec3, dec4, dec1], unit='deg', frame='icrs')
+										# region_pix = PolygonSkyRegion(vertices=vertices) # No WCS object!
+
+										n_hostgalaxy_points = len(_simple_galcat[region_pix.contains(hostgalaxy90_point)])
+										total_prob_polygon = np.sum(_simple_galcat[probkey][region_pix.contains(hostgalaxy90_point)])
+										# print(nn, n_hostgalaxy_points, total_prob_polygon)
+										
+										select_skygrid_cat['n_hostgalaxy'][nn] = n_hostgalaxy_points
+										select_skygrid_cat[probkey][nn] = total_prob_polygon
+
 
 								min_prob = np.min(select_skygrid_cat[probkey][~np.isnan(select_skygrid_cat[probkey])])
 								select_skygrid_cat[probkey][np.isnan(select_skygrid_cat[probkey])] = min_prob
@@ -1122,7 +1167,9 @@ while True:
 								# 	colors = makeSpecColors(n=100)
 								allralist, alldeclist = DrawTiles(select_skygrid_cat)
 								#	To reduce the computing time
-								if obs == 'KCT':
+								# if obs == 'KCT':
+								if obs in ['KCT', 'CBNUO']:
+								
 									allralist, alldeclist = allralist[:100], alldeclist[:100]
 								for nn, (ralist, declist) in enumerate(zip(allralist, alldeclist)):
 									if nn > 10:
