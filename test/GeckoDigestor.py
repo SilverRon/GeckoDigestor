@@ -1483,6 +1483,8 @@ while True:
 								channel = channel,
 								text = text,
 						)
+						if record['event']['classification']['Terrestrial'] > 0.5:
+							slack = False
 						if slack:
 							slack_bot(**param_slack)
 						print("\nWaiting for a GW alert...\n")

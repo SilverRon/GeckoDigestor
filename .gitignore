@@ -138,4 +138,5 @@ data/GLADE+_230419.fits
 # Output
 output/MS23**
 output/S**
+output/GW**
 mockevent/*
