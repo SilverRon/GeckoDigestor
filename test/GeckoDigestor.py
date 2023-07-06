@@ -1483,7 +1483,9 @@ while True:
 								channel = channel,
 								text = text,
 						)
-						if record['event']['group'] != 'Burst':
+						if record['event']['group'] == 'Burst':
+							slack = False
+						else:
 							if record['event']['classification']['Terrestrial'] > 0.5:
 								slack = False
 						if slack:
