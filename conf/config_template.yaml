@@ -1,27 +1,93 @@
-# config.yaml
+# config_template.yaml --> change it into 'config.yaml'
 
-# GCN Kafka
-GCN_KAFKA_CONFIG:
-  client_id: "PUT_YOUR_CLIENT_ID"
-  client_secret: "PUT_YOUR_CLIENT_SECRET"
+# API 설정
+API_CONFIG:
+  # GCN Kafka 설정
+  GCN_KAFKA:
+    client_id: "..."
+    client_secret: "..."
+  
+  # Slack 설정
+  SLACK:
+    OAuth_Token: "..."
+    channel: "gecko--alert"
 
-# Slack
-SLACK_API_CONFIG:
-  OAuth_Token: "PUT_YOUR_OAUTH_TOKEN"
+# GW 설정
+GW_SETTINGS:
+  # 거리 설정
+  DISTANCE:
+    mean: 100  # Mpc
+    std: 10    # Mpc
+  
+  # 신뢰도 구간
+  CONFIDENCE_INTERVALS:
+    HIGH: 0.9  # 90% 신뢰도
+    MEDIUM: 0.5  # 50% 신뢰도
 
-# GW
-TEMP_DIST_MEAN: 100
-TEMP_DIST_STD: 10
+# 관측 설정
+OBSERVATION_SETTINGS:
+  # 데이터 경로
+  PATHS:
+    CATALOG: "../data/GLADE+_240919.fits"
+    FACILITY: "../data/gecko.facilities.tsv"
+    TEMPLATE_LC: "../data/AT2017gfo_phot_modified.dat"
+    SKYMAP: "../data/skymap/"
+    OUTPUT: "../output"
+    EVENT_LOG: "../output/event.log"
+    ERROR_LOG: "../output/error.log"
 
-# Calculation
-NUMBER_GALAXY_LIMIT: 500     # [sec]
-NUMBER_TILING_LIMIT: 500     # [sec]
-EXPTIME_LIMIT_SMNET: 5400    # [sec]
-EXPTIME_LIMIT_KMTNET: 3600   # [sec]
+  # 제한 설정
+  LIMITS:
+    GALAXIES: 500  # 최대 은하 수
+    TILES: 500     # 최대 타일 수
+    EXPOSURE:
+      SMNET: 5400  # SMNET 최대 노출 시간 (초)
+      KMTNET: 3600 # KMTNet 최대 노출 시간 (초)
 
-# Time
-TIME_TO_SLEEP: 5
+  # 망원경 설정
+  TELESCOPES:
+    enabled: ['7DT', 'KMTNet', 'RASA36', 'KCT', 'CBNUO', 'UKIRT']
+    EXPOSURE_LIMITS:
+      SMNET: 5400  # [sec]
+      KMTNET: 3600  # [sec]
 
-# Path
-path_out: "/path/to/your/output"
-path_eventlog: "/path/to/your/output/event.log"
+# 시간 설정
+TIME_SETTINGS:
+  SLEEP: 5  # 대기 시간 (초)
+  PROCESSING:
+    TIMEOUT: 3600  # 최대 처리 시간 (초)
+    CHECK_INTERVAL: 60  # 상태 체크 간격 (초)
+
+# 시각화 설정
+VISUALIZATION:
+  # 그래프 설정
+  PLOT:
+    DPI: 500
+    TITLE_SIZE: 14
+    LABEL_SIZE: 20
+
+  # 슬랙 메시지 설정
+  SLACK:
+    MESSAGE:
+      MAX_LENGTH: 4000
+      INCLUDE_IMAGE: true
+
+# 이벤트 처리 설정
+EVENT_PROCESSING:
+  # 처리 시간 제한
+  TIMEOUTS:
+    PROCESSING: 3600  # 최대 처리 시간 (초)
+    SLEEP: 5  # 대기 시간 (초)
+
+  # 신뢰도 기준
+  PROBABILITY_THRESHOLDS:
+    NS: 0.5  # 중성자별 합체 확률 기준
+    BURST: 0.5  # 버스트 신호 확률 기준
+
+  # 거리 제한
+  DISTANCE:
+    MAX_MEAN: 1000  # 최대 평균 거리 (Mpc)
+    MAX_STD: 100  # 최대 표준편차 (Mpc)
+
+# Debugging Mode (True: no slack alert, False: slack alert)
+DEBUG_MODE: true

@@ -337,7 +337,7 @@ def calc_apparent_mag(d, dprime, m):
     return mprime
 
 
-def expect_AT2017gfo(dprime, phase, filterlist=['g', 'r', 'i', 'z', 'y', 'J', 'H', 'K',], plot=True):
+def expect_AT2017gfo(dprime, phase, path_template_lc, filterlist=['g', 'r', 'i', 'z', 'y', 'J', 'H', 'K',], plot=True):
 	# filterlist = ['g', 'r', 'i', 'z', 'y', 'J', 'H', 'K',]
 	# for filte in ['g', 'r', 'i', 'z', 'y',]:
 	colors = makeSpecColors(len(filterlist), palette='Spectral')
@@ -345,7 +345,7 @@ def expect_AT2017gfo(dprime, phase, filterlist=['g', 'r', 'i', 'z', 'y', 'J', 'H
 	d = 40 # [Mpc]
 	#	AT2017gfo Table
 	# intbl = ascii.read('../data/AT2017gfo_phot_modified.dat', header_start=0, data_start=1)
-	intbl = ascii.read('/data/gpaek/GeckoDigestor/data/AT2017gfo_phot_modified.dat', header_start=0, data_start=1)
+	intbl = ascii.read(path_template_lc, header_start=0, data_start=1)
 	for ff, filte in enumerate(filterlist):
 		# plt.plot(intbl['Phase'], intbl[filte], 'o-', mfc='w', label=filte)
 		mprime = calc_apparent_mag(d, dprime, intbl[filte])

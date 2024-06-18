@@ -89,6 +89,7 @@ obs_config = config['OBSERVATION_SETTINGS']
 # 경로 설정
 path_out = obs_config['PATHS']['OUTPUT']
 path_eventlog = obs_config['PATHS']['EVENT_LOG']
+TEMPLATE_LC = obs_config['PATHS']['TEMPLATE_LC']
 
 eventlogtbl = Table.read(path_eventlog, format='ascii.fixed_width')
 
@@ -953,7 +954,7 @@ while True:
 			plt.close()
 			fig = plt.figure(figsize=(8, 5))
 			filterlist = ['g', 'r', 'i', 'z', 'y', 'J', 'H', 'K',]
-			expected_magdict = expect_AT2017gfo(dprime=distmean, phase=phase, filterlist=filterlist, plot=True)
+			expected_magdict = expect_AT2017gfo(dprime=distmean, phase=phase, path_template_lc=TEMPLATE_LC, filterlist=filterlist, plot=True)
 			yu, yl = plt.ylim()
 
 			#	SMNet
