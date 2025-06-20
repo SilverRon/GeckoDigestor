@@ -141,3 +141,4 @@ output/MS23**
 output/S**
 output/GW**
 mockevent/*
+data/data.bkg/*.fits
