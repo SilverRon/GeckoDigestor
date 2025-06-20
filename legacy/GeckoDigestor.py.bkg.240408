@@ -62,8 +62,7 @@ slack = False
 try:
 	cat
 except NameError:
-	# cat = Table.read('../data/GLADE+_230419.fits', format='fits',)				
-	cat = Table.read('../data/GLADE+_240919.fits', format='fits',)				
+	cat = Table.read('../data/GLADE+_230419.fits', format='fits',)				
 coordinates = SkyCoord(cat['col9']*u.deg, cat['col10']*u.deg, cat['col33']*u.Mpc)
 
 #	GECKO facilities
@@ -121,10 +120,7 @@ while True:
 		for event in eventlist
 		if event not in eventlogtbl['id']
 	]
-	#	Mock data
-	# event_nolog_list = [f"MS240408c_INITIAL"]
-	# event_nolog_list = [f"S240422ed_UPDATE"]
-	# %%
+
 	if len(event_nolog_list):
 		for ee, event in enumerate(event_nolog_list):
 			# path_output = f"{path_out}/{record['superevent_id']}_{record['alert_type']}"
@@ -169,17 +165,12 @@ while True:
 					i = cumprob.searchsorted(0.9)
 					area_90 = pixel_area[:i].sum()
 					#
-					# if (record['event']['group'] == 'CBC'):
-					# 	pass
-					# elif (record['event']['group'] == 'Burst'):
-					# 	#   Put some distance info
-					# 	skymap.meta['DISTMEAN'] = 1000
-					# 	skymap.meta['DISTSTD'] = 100
-					#	Check Distance Values
-					skymap.meta['DISTMEAN'] = skymap.meta.get('DISTMEAN', 1000)
-					skymap.meta['DISTSTD'] = skymap.meta.get('DISTSTD', 100)
-					if skymap.meta['DISTMEAN'] == 1000:
-						print(f"No Distance Information!")
+					if (record['event']['group'] == 'CBC'):
+						pass
+					elif (record['event']['group'] == 'Burst'):
+						#   Put some distance info
+						skymap.meta['DISTMEAN'] = 1000
+						skymap.meta['DISTSTD'] = 100
 					#
 					print(f'Most probable sky location (RA, Dec) = ({ra.deg:.3f}, {dec.deg:.3f})')
 					print(f'Distance = {skymap.meta["DISTMEAN"]:.1f} +/- {skymap.meta["DISTSTD"]:.1f} Mpc')
@@ -270,8 +261,6 @@ while True:
 				elif "MS" == record['superevent_id'][0:2]:
 					slack = False
 					gecko_digestor_trigger = False
-					#	For the test
-					# gecko_digestor_trigger = True
 					print("This is not a superevent")
 				else:
 					slack = True
@@ -405,14 +394,11 @@ while True:
 					prob = pixel_area * skymap['PROBDENSITY']
 					cumprob = np.cumsum(prob)
 					i = cumprob.searchsorted(confidence_limit)
-					j = cumprob.searchsorted(0.5) # 50%
 					area_90 = pixel_area[:i].sum()
-					area_50 = pixel_area[:j].sum()
 					#	New column about cumulative probability
 					skymap['CUMPROBDENSITY'] = cumprob
 
 					print(f"{area_90.to_value(u.deg**2):1.3f} deg2 ({confidence_limit*1e2:.1f} %)")
-					print(f"{area_50.to_value(u.deg**2):1.3f} deg2 ({0.5*1e2:.1f} %)")
 
 					# %%
 					ramin, ramax = np.min(skymap['RA'][cumprob<confidence_limit]), np.max(skymap['RA'][cumprob<confidence_limit])
@@ -643,9 +629,7 @@ while True:
 					simple_galcat_name = f"{path_output}/HostGalaxyCatalog_{confidence_limit*1e2:g}.csv"
 					simple_galcat.write(simple_galcat_name, format='csv', overwrite=True)
 					print(f"Save the host galaxy candidate catalog ({os.path.basename(simple_galcat_name)})")
-					#	ds9 region file
-					simple_galcat_region = simple_galcat_name.replace("csv", "reg")
-					create_ds9_regions(simple_galcat["ra"], simple_galcat["dec"], simple_galcat["name"], filename=simple_galcat_region)
+
 
 
 					# %%
@@ -685,7 +669,6 @@ while True:
 						flip='astro',
 						# rot=(90, -45),
 						coord=['E'],
-						# coord=['E'],
 						unit=r'$\rm P_{3D}$',
 						# gal_cut=[-20,+20],
 						)
@@ -742,7 +725,6 @@ while True:
 						cbar=True, cmap=cmap,
 						flip='astro',
 						# rot=(90, -45),
-						# coord=['E'],
 						coord=['E'],
 						unit=r'$\rm P_{3D}$',
 						# gal_cut=[-20,+20],
@@ -1020,7 +1002,6 @@ while True:
 						print("Tiling Observation")
 						print(f"-"*60)
 						#	Default values for escaping the error
-						n_observable_7DT = 0
 						n_observable_RASA36 = 0
 						n_observable_KCT = 0
 						n_observable_CBNUO = 0
@@ -1028,10 +1009,7 @@ while True:
 						n_observable_KMTNet_CTIO = 0
 						n_observable_KMTNet_SAAO = 0
 
-						# for obs in ['7DT', 'KMTNet',]:
-						for obs in ['7DT', 'KMTNet', 'CBNUO', 'RASA36', 'RASA36',]:
-						# for obs in ['7DT',]:
-						# for obs in ['KCT', 'CBNUO', 'RASA36', 'KMTNet',]:
+						for obs in ['KCT', 'CBNUO', 'RASA36', 'KMTNet',]:
 							#
 							print(f"Generating Tiling Pattern for {obs}")
 
@@ -1116,20 +1094,8 @@ while True:
 										select_skygrid_cat[probkey][nn] = total_prob_polygon
 
 
-								# min_prob = np.min(select_skygrid_cat[probkey][~np.isnan(select_skygrid_cat[probkey])])
-								# select_skygrid_cat[probkey][np.isnan(select_skygrid_cat[probkey])] = min_prob
-
-								prob_values = select_skygrid_cat[probkey]
-								valid_mask = ~np.isnan(prob_values)
-								valid_probs = prob_values[valid_mask]
-
-								if len(valid_probs) > 0:
-									min_prob = np.min(valid_probs)
-									select_skygrid_cat[probkey][~valid_mask] = min_prob
-								else:
-									print(f"[warning] '{probkey}' column in select_skygrid_cat has no valid entries.")
-									
-									select_skygrid_cat[probkey] = np.zeros(len(select_skygrid_cat))
+								min_prob = np.min(select_skygrid_cat[probkey][~np.isnan(select_skygrid_cat[probkey])])
+								select_skygrid_cat[probkey][np.isnan(select_skygrid_cat[probkey])] = min_prob
 
 								select_skygrid_cat.sort(probkey, reverse=True)
 								for key in select_skygrid_cat.keys():
@@ -1186,7 +1152,6 @@ while True:
 									cbar=True, cmap=cmap,
 									flip='astro',
 									# rot=(90, -45),
-									# coord=['E'],
 									coord=['E'],
 									unit=r'$\rm P_{3D}$',
 									# gal_cut=[-20,+20],
@@ -1295,52 +1260,8 @@ while True:
 									'ordering': probkey,
 									"obs": obs,
 								}
-								select_skygrid_cat.meta = skygrid_meta_dict
 								select_skygrid_cat.write(f"{select_skygrid_cat_name}", format='csv', overwrite=True)
 								#------------------------------------------------------------
-								# %%
-								#	Script Maker
-								#------------------------------------------------------------
-								# _select_100_skygrid_cat = select_skygrid_cat[:100]
-								if obs == '7DT':
-									scheduler_grid = ObsScheduler(
-										# target_db= _select_100_skygrid_cat,
-										target_db= select_skygrid_cat,
-										date = date,
-										name_project = name_project,
-										name_telescope = obs,
-										entire_night = True
-										)
-									# Define target
-									scriptmaker_grid = ScriptMaker(scheduler_grid)
-									# Action
-									scriptmaker_grid.write_rts(
-										filename_prefix= filename_prefix, 
-										savepath = rts_savepath, 
-										# n_target_for_each_timeslot= n_target_for_each_timeslot
-										#	Hard Coding!
-										n_target_for_each_timeslot= 20
-										)
-									# Temp. Commented out
-									# rts_table = scriptmaker_grid.obsdata.schedule.scheduled[scriptmaker_grid.obsdata.schedule.scheduled['obj'] != 'autofocus']
-									# rts_filename_for_7DT = f"{rts_savepath}/{filename_prefix}_rts_{obs}.csv"
-									# rts_table.write(rts_filename_for_7DT, format = 'csv', overwrite=True)
-									# #	Google Spread Sheet
-									# gscom = f"python googlesheet.py {event} {rts_filename_for_7DT}"
-									# print(gscom)
-									# os.system(gscom)
-									# print(f"Done!")
-
-									# scriptmaker_grid.write_ACPscript_RASA36(filename_prefix= filename_prefix, savepath = ACP_savepath)
-									# scriptmaker_grid.write_log(n_target = NUMBER_GALAXY_LIMIT, sort_keyword = 'rank', filename_prefix= filename_prefix, savepath= ACP_savepath, format_ = 'ascii.fixed_width', return_ = False)
-									# scriptmaker_grid.show(save = True, filename_prefix = filename_prefix, savepath = ACP_savepath)
-									# n_observable_RASA36 = len(scriptmaker_grid.result.scheduled)
-									n_observable_7DT = len(scriptmaker_grid.result.scheduled)
-									print(f"{n_observable_7DT} 7DT observations")
-									print("Done!\n")
-								#
-								#------------------------------------------------------------
-								# %%
 								#	Scaled the exposure time
 								#------------------------------------------------------------
 								#	Observation Request
@@ -1489,14 +1410,8 @@ while True:
 												date_str,
 												cbands,
 												cid,
-												path_save=path_output,
-												cdith=[0,1,2,3],
-												)
+												path_save=path_output)
 										date += 1*u.day
-								elif obs == '7DT':
-									n_observable_7DT = len(select_skygrid_cat)
-									print(f"{n_observable_7DT} {obs} observations")
-									print("Done!\n")
 						#============================================================
 						#	Summary
 						#------------------------------------------------------------
@@ -1510,7 +1425,6 @@ while True:
 						classification {most_probable_event}({most_probable_event_prob*1e2:g}%)
 						distance(Mpc) {distmean:.1f}+/-{diststd:.1f}
 						area_90%(deg2) {area_90.to(u.deg**2).value:.1f}
-						area_50%(deg2) {area_50.to(u.deg**2).value:.1f}
 						radec_max(deg) {ramax:1.3f},{decmax:1.3f}
 						radec_max(hmsdms) {ra_hms},{dec_dms}
 						n_host_galaxy_all {len(simple_galcat)}
@@ -1519,8 +1433,7 @@ while True:
 						"""
 						for filte in list(expected_magdict.keys()):
 							_summary_txt += f"expected_{filte}mag {expected_magdict[filte]:.1f}\n"
-						_summary_txt +=f"""7DT {n_observable_7DT}
-						SAO {n_observable_SAO}
+						_summary_txt +=f"""SAO {n_observable_SAO}
 						LOAO {n_observable_LOAO}
 						LSGT {n_observable_LSGT}
 						RASA36 {n_observable_RASA36}

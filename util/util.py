@@ -85,7 +85,7 @@ import numpy as np
 from astropy import units as u
 import astropy.coordinates as coord
 
-def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.ndarray, site: str, date: str, cbands: list, cid: list, path_save: str):
+def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.ndarray, site: str, date: str, cbands: list, cid: list, path_save: str, cdith=[0, 3]):
 	'''
 	This function generates a KMTNet observation script given inputs for object name, RA/Dec coordinates, observation site, date, and filter bands.
 	The function takes the following arguments:
@@ -134,7 +134,7 @@ def generate_KMTNet_obs_script(cfield: list, craarr: np.ndarray, cdecarr: np.nda
 	# site = 'CTIO'
 	# date = '20230313' # 16
 	# cdith = [0,1,2,3, 4,5,6,7, 8,9,10,11, 12,13,14,15, 16,17,18,19]
-	cdith = [0, 3]
+	# cdith = [0, 3]
 	# cbands = ['R',]
 	#craarr = [287.000000, 329.419500, 338.358333, 52.500000]
 	#cdecarr = [-64.500000, -80.358000, -60.635833, -28.100000]
@@ -216,7 +216,8 @@ def expect_AT2017gfo(dprime, phase, filterlist=['g', 'r', 'i', 'z', 'y', 'J', 'H
 	expected_magdict = {}
 	d = 40 # [Mpc]
 	#	AT2017gfo Table
-	intbl = ascii.read('../data/AT2017gfo_phot_modified.dat', header_start=0, data_start=1)
+	# intbl = ascii.read('../data/AT2017gfo_phot_modified.dat', header_start=0, data_start=1)
+	intbl = ascii.read('/home/gecko/GeckoDigestor/data/AT2017gfo_phot_modified.dat', header_start=0, data_start=1)
 	for ff, filte in enumerate(filterlist):
 		# plt.plot(intbl['Phase'], intbl[filte], 'o-', mfc='w', label=filte)
 		mprime = calc_apparent_mag(d, dprime, intbl[filte])
@@ -321,3 +322,27 @@ def find_exposure_time(exp_min, obs_min, total_time, tolerence=10):
 	if closest_tuple == None:
 		closest_tuple = (exp_min, obs_min)
 	return closest_tuple
+
+def create_ds9_regions(ra, dec, names, filename='regions_with_names.reg'):
+	"""
+	Create a DS9 region file with circles of radius 5 arcseconds and include object names as labels.
+	Correctly formats text labels to ensure compatibility with DS9.
+
+	Parameters:
+	- ra: array of Right Ascension in degrees
+	- dec: array of Declination in degrees
+	- names: array of object names
+	- filename: name of the output region file
+	"""
+	with open(filename, 'w') as file:
+		# Write the DS9 region file header
+		file.write('# Region file format: DS9 version 4.1\n')
+		file.write('global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" ')
+		file.write('select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n')
+		file.write('fk5\n')
+
+		# Write each circle region with the object name
+		for r, d, name in zip(ra, dec, names):
+			file.write(f'circle({r},{d},5") # text={{{name}}}\n')
+
+	print(f"DS9 region file '{filename}' created successfully.")
