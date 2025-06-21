@@ -1,0 +1,35 @@
+{
+    "observations": {
+        "confidence_limits": {
+            "90": 0.9,
+            "95": 0.95,
+            "99": 0.99
+        },
+        "max_exposure": 7200,  // Increased max exposure time
+        "min_separation": 0.2   // Increased minimum separation
+    },
+    "facilities": {
+        "LSGT": {
+            "exposure_times": {
+                "10min": 600,
+                "30min": 1800
+            },
+            "filters": ["r", "i"],
+            "depth": 23.0,  // Increased depth
+            "exptime": 15   // Increased base exposure time
+        },
+        "KCT": {
+            "exposure_times": {
+                "10min": 600,
+                "30min": 1800
+            },
+            "filters": ["r"],
+            "depth": 21.5,
+            "exptime": 30
+        }
+    },
+    "processing": {
+        "max_retries": 5,  // Increased max retries
+        "retry_delay": 120  // Increased retry delay
+    }
+}

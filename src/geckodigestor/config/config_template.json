@@ -1,0 +1,45 @@
+{
+    "alert_receiver": {
+        "kafka_topic": "gcn.classic.voevent",
+        "consumer_timeout": 2592000,
+        "alert_types": ["PRELIMINARY", "INITIAL", "UPDATE"]
+    },
+    "galaxy_catalog": {
+        "name": "GLADE+",
+        "file": "GLADE+_240919.fits",
+        "version": "240919",
+        "columns": {
+            "ra": "RA",
+            "dec": "Dec",
+            "distance": "Dist",
+            "mag": "B"
+        }
+    },
+    "slack": {
+        "enabled": true,
+        "channel": "#gecko-digestor",
+        "token": "${SLACK_API_TOKEN}"
+    },
+    "paths": {
+        "base_dir": ".",
+        "data_dir": "./data",
+        "output_dir": "./output",
+        "log_dir": "./logs",
+        "skymap_dir": "./data/skymaps",
+        "catalog_dir": "./data/catalogs"
+    },
+    "processing": {
+        "max_retries": 3,
+        "retry_delay": 60,
+        "max_processing_time": 3600,
+        "error_handling": {
+            "log_level": "ERROR",
+            "log_to_file": true,
+            "file_logging": {
+                "filename": "geckodigestor.log",
+                "max_bytes": 10485760,
+                "backup_count": 5
+            }
+        }
+    }
+}
