@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Configuration
-config/config.py
+conf/config.yaml
 
 # Data
 data/GLADE+.fits
@@ -137,8 +137,11 @@ data/GLADE+_230419.fits
 data/GLADE+_240919.fits
 
 # Output
-output/MS23**
-output/S**
+output/MS**
+output/S25**
 output/GW**
 mockevent/*
 data/data.bkg/*.fits
+
+# Etc
+.vscode

@@ -1,0 +1,27 @@
+# config.yaml
+
+# GCN Kafka
+GCN_KAFKA_CONFIG:
+  client_id: "PUT_YOUR_CLIENT_ID"
+  client_secret: "PUT_YOUR_CLIENT_SECRET"
+
+# Slack
+SLACK_API_CONFIG:
+  OAuth_Token: "PUT_YOUR_OAUTH_TOKEN"
+
+# GW
+TEMP_DIST_MEAN: 100
+TEMP_DIST_STD: 10
+
+# Calculation
+NUMBER_GALAXY_LIMIT: 500     # [sec]
+NUMBER_TILING_LIMIT: 500     # [sec]
+EXPTIME_LIMIT_SMNET: 5400    # [sec]
+EXPTIME_LIMIT_KMTNET: 3600   # [sec]
+
+# Time
+TIME_TO_SLEEP: 5
+
+# Path
+path_out: "/path/to/your/output"
+path_eventlog: "/path/to/your/output/event.log"

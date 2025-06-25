@@ -1,0 +1,46 @@
+Event Information:
+Event ID: S230518h
+Alert Type: PRELIMINARY
+Trigger Time: 2023-05-18T12:59:08.167Z
+Processing Start: 2025-06-25T07:03:33.780Z
+Processing Time: 39.6 sec
+
+Localization:
+Phase: 1.0 days
+Classification: NSBH (86.4%)
+Distance: 275.5 +/- 78.9 Mpc
+
+Sky Position:
+RA, Dec (deg): 357.188,34.591
+RA, Dec (hms, dms): 23:48:45.00,+34:35:26.07
+
+Sky Area:
+90% Area: 1001.5 deg²
+50% Area: 265.8 deg²
+
+Host Galaxies:
+Total: 55,846
+Within 90%: 34,700
+Within 50%: 9,498
+
+Expected Magnitudes:
+g band: 21.9 mag
+r band: 21.7 mag
+i band: 21.7 mag
+z band: 21.6 mag
+y band: 21.5 mag
+J band: 21.8 mag
+H band: 22.0 mag
+K band: 22.3 mag
+
+Observation Coverage:
+7DT: 1,117 tiles
+KMTNet: 377 tiles
+RASA36: 253 tiles
+KCT: 1,780 tiles
+CBNUO: 547 tiles
+UKIRT: 955 tiles
+
+Processed Time: 0.7 min
+
+Output Path: /data/gpaek/GeckoDigestor/output/S230518h_PRELIMINARY
