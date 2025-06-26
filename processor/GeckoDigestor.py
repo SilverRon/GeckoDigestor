@@ -1399,35 +1399,35 @@ while True:
 			
 			# # Fin. ALERT!!!
 			# %%
+			if not debug:
+				img_file = f"{path_output}/skymap_no_rot.png"
 
-			img_file = f"{path_output}/skymap_no_rot.png"
+				# -------------------------------------------------------------------------
+				# 1) files_upload 한 번으로 'Process done …' 메시지와 이미지를 같이 올립니다.
+				initial_comment = f"[`GeckoDigestor`] {record['superevent_id']}-{record['alert_type']}, ({most_probable_event} {most_probable_event_prob:.1%}, d={distmean:.1f}+/-{diststd:.1f} Mpc)"
 
-			# -------------------------------------------------------------------------
-			# 1) files_upload 한 번으로 'Process done …' 메시지와 이미지를 같이 올립니다.
-			initial_comment = f"[`GeckoDigestor`] {record['superevent_id']}-{record['alert_type']}, ({most_probable_event} {most_probable_event_prob:.1%}, d={distmean:.1f}+/-{diststd:.1f} Mpc)"
+				resp = client.files_upload(
+					channels=slack_channel,
+					file=img_file,
+					initial_comment=initial_comment
+				)
 
-			resp = client.files_upload(
-				channels=slack_channel,
-				file=img_file,
-				initial_comment=initial_comment
-			)
+				# 2) shares 구조에서 실제 채널 ID를 꺼내기
+				#    resp['file']['shares']['public'] 의 키가 채널 ID 입니다.
+				shares = resp['file'].get('shares', {}).get('public', {})
 
-			# 2) shares 구조에서 실제 채널 ID를 꺼내기
-			#    resp['file']['shares']['public'] 의 키가 채널 ID 입니다.
-			shares = resp['file'].get('shares', {}).get('public', {})
+				# 예를 들어 첫 번째 채널 ID를 뽑아내려면:
+				channel_id = next(iter(shares.keys()))       # -> "C05419UFPK9"
+				thread_ts  = shares[channel_id][0]['ts']     # -> "1750655947.348539"
 
-			# 예를 들어 첫 번째 채널 ID를 뽑아내려면:
-			channel_id = next(iter(shares.keys()))       # -> "C05419UFPK9"
-			thread_ts  = shares[channel_id][0]['ts']     # -> "1750655947.348539"
+				# 3) summary_text 를 같은 스레드에 포스팅
+				client.chat_postMessage(
+					channel=channel_id,      # ID 형식으로 주어도 됩니다
+					thread_ts=thread_ts,
+					text=f"```{summary_txt}```"
+				)
 
-			# 3) summary_text 를 같은 스레드에 포스팅
-			client.chat_postMessage(
-				channel=channel_id,      # ID 형식으로 주어도 됩니다
-				thread_ts=thread_ts,
-				text=f"```{summary_txt}```"
-			)
-
-			print(f"DONE! ({delt/60.:.1f} min)")
+				print(f"DONE! ({delt/60.:.1f} min)")
 			# %%
 		elif (superevent == False) & (gecko_digestor_trigger == False) & (slack == False):
 			print("This is not a superevent and not a gecko digestor trigger and not a slack message")
@@ -1435,14 +1435,13 @@ while True:
 
 		elif (superevent == False) & (gecko_digestor_trigger == False) & (slack == True):
 
-			OAuth_Token = SLACK_API_CONFIG['OAuth_Token']
-
-			initial_comment = f"[`GeckoDigestor`] Catch the alert ({record['superevent_id']}-{record['alert_type']}). Stay tuned!"
-			resp = client.files_upload(
-				channels=slack_channel,
-				file=img_file,
-				initial_comment=initial_comment
-			)
+			if not debug:
+				initial_comment = f"[`GeckoDigestor`] Catch the alert ({record['superevent_id']}-{record['alert_type']}). Stay tuned!"
+				resp = client.files_upload(
+					channels=slack_channel,
+					file=img_file,
+					initial_comment=initial_comment
+				)
 
 		#	Update the event log
 		print(f"Updating the event log...")
