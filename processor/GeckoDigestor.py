@@ -656,7 +656,7 @@ while True:
 
 	# --- 1) 로그 갱신 ---
 	# print(f"Refreshing event log...")
-	_refresh_eventlog()
+	# _refresh_eventlog()
 
 	# # --- 2) 디렉터리 스캔 (os.scandir이 glob보다 빠릅니다) ---
 	# # print(f"Scanning directory...")
@@ -692,6 +692,8 @@ while True:
 	# 		row = eventlogtbl[_eventlogtbl['superevent_id'] == superevent_id]
 	# 		if len(row) > 0 and not row['processed'][0]:
 	# 			new_events.append(e)
+	
+	eventlogtbl = Table.read(f"{path_out}/event.log", format='ascii.fixed_width')
 	for e in eventlist:
 		indx_not_processed = eventlogtbl['processed'] == False
 		not_processed_events = eventlogtbl['output_dir'][indx_not_processed]
@@ -1404,7 +1406,11 @@ while True:
 
 				# -------------------------------------------------------------------------
 				# 1) files_upload 한 번으로 'Process done …' 메시지와 이미지를 같이 올립니다.
-				initial_comment = f"[`GeckoDigestor`] {record['superevent_id']}-{record['alert_type']}, ({most_probable_event} {most_probable_event_prob:.1%}, d={distmean:.1f}+/-{diststd:.1f} Mpc)"
+				initial_comment = f"[`GeckoDigestor`] {record['superevent_id']}-{record['alert_type']}, ({most_probable_event} {most_probable_event_prob:.1%}"
+				if most_probable_event == 'Burst':
+					pass
+				else:
+					initial_comment += f", d={distmean:.1f}+/-{diststd:.1f} Mpc"
 
 				resp = client.files_upload(
 					channels=slack_channel,
