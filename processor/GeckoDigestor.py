@@ -1401,7 +1401,7 @@ while True:
 			
 			# # Fin. ALERT!!!
 			# %%
-			if not debug:
+			if not debug_mode:
 				img_file = f"{path_output}/skymap_no_rot.png"
 
 				# -------------------------------------------------------------------------
@@ -1441,7 +1441,7 @@ while True:
 
 		elif (superevent == False) & (gecko_digestor_trigger == False) & (slack == True):
 
-			if not debug:
+			if not debug_mode:
 				initial_comment = f"[`GeckoDigestor`] Catch the alert ({record['superevent_id']}-{record['alert_type']}). Stay tuned!"
 				resp = client.files_upload(
 					channels=slack_channel,
