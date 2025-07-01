@@ -1402,16 +1402,23 @@ while True:
 			
 			# # Fin. ALERT!!!
 			# %%
-			if not debug_mode:
+			# 0. debug 모드에서는 무조건 슬랙 전송 비활성화
+			if debug_mode:
+				slack = False
+
+			# 1. slack=True 이면서 debug_mode=False 인 경우만 여기로 들어옵니다.
+			if slack:
+				# (a) 이미지 파일 경로 설정
 				img_file = f"{path_output}/skymap_no_rot.png"
 
-				# -------------------------------------------------------------------------
-				# 1) files_upload 한 번으로 'Process done …' 메시지와 이미지를 같이 올립니다.
-				initial_comment = f"[`GeckoDigestor`] {record['superevent_id']}-{record['alert_type']}, ({most_probable_event} {most_probable_event_prob:.1%}"
-				if most_probable_event == 'Burst':
-					pass
-				else:
-					initial_comment += f", d={distmean:.1f}+/-{diststd:.1f} Mpc"
+				# (b) Process done 메시지+이미지 업로드
+				initial_comment = (
+					f"[`GeckoDigestor`] {record['superevent_id']}-{record['alert_type']}, "
+					f"({most_probable_event} {most_probable_event_prob:.1%}"
+				)
+				if most_probable_event != 'Burst':
+					initial_comment += f", d={distmean:.1f}±{diststd:.1f} Mpc"
+				initial_comment += ")"
 
 				resp = client.files_upload(
 					channels=slack_channel,
@@ -1419,37 +1426,25 @@ while True:
 					initial_comment=initial_comment
 				)
 
-				# 2) shares 구조에서 실제 채널 ID를 꺼내기
-				#    resp['file']['shares']['public'] 의 키가 채널 ID 입니다.
-				shares = resp['file'].get('shares', {}).get('public', {})
+				# (c) 업로드된 메시지에서 thread_ts 추출
+				shares     = resp['file'].get('shares', {}).get('public', {})
+				channel_id = next(iter(shares.keys()))
+				thread_ts  = shares[channel_id][0]['ts']
 
-				# 예를 들어 첫 번째 채널 ID를 뽑아내려면:
-				channel_id = next(iter(shares.keys()))       # -> "C05419UFPK9"
-				thread_ts  = shares[channel_id][0]['ts']     # -> "1750655947.348539"
-
-				# 3) summary_text 를 같은 스레드에 포스팅
+				# (d) 같은 스레드에 summary 텍스트 포스팅
 				client.chat_postMessage(
-					channel=channel_id,      # ID 형식으로 주어도 됩니다
+					channel=channel_id,
 					thread_ts=thread_ts,
 					text=f"```{summary_txt}```"
 				)
 
 				print(f"DONE! ({delt/60.:.1f} min)")
-			# %%
-		elif (superevent == False) & (gecko_digestor_trigger == False) & (slack == False):
-			print("This is not a superevent and not a gecko digestor trigger and not a slack message")
-			print("Waiting for a GW alert...")
 
-		elif (superevent == False) & (gecko_digestor_trigger == False) & (slack == True):
-
-			if not debug_mode:
-				initial_comment = f"[`GeckoDigestor`] Catch the alert ({record['superevent_id']}-{record['alert_type']}). Stay tuned!"
-				resp = client.files_upload(
-					channels=slack_channel,
-					file=img_file,
-					initial_comment=initial_comment
-				)
-
+			# 2. slack=False 이거나 debug_mode=True → 전혀 보내지 않음
+			else:
+				print(f"[slack={slack}] 슬랙 메시지를 보내지 않습니다.")
+				print("Waiting for a GW alert...")
+				
 		#	Update the event log
 		print(f"Updating the event log...")
 		indx_match = eventlogtbl['output_dir'] == os.path.basename(path_output)
