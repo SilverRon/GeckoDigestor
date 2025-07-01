@@ -864,6 +864,7 @@ while True:
 					pass
 				elif most_probable_event in ['Terrestrial']:
 					gecko_digestor_trigger = False
+					slack = False
 					pass
 			elif record['event']['group'] == 'Burst':
 				most_probable_event = 'Burst'
