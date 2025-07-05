@@ -1249,7 +1249,7 @@ while True:
 			# Prepare the healpix map (unchanged)
 			# nside   = 2**7 # This fixed valude is only for the visualization
 			# nside   = np.max(skymap['nside'])
-			nside   = int(64)
+			nside   = np.min(skymap['nside'])
 			# nside   = skymap['nside']
 			npix    = hp.nside2npix(nside)
 			hp_map  = np.zeros(npix)
@@ -1517,12 +1517,17 @@ while True:
 			if slack:
 				# (a) 이미지 파일 경로 설정
 				img_file = f"{path_output}/skymap_no_rot.png"
+				
+				gracedb_url = f"https://gracedb.ligo.org/superevents/{record['superevent_id']}/"
 
 				# (b) Process done 메시지+이미지 업로드
+
 				initial_comment = (
-					f"[`GeckoDigestor`] {record['superevent_id']}-{record['alert_type']}, "
+					f"[`GeckoDigestor`] <{gracedb_url}|gracedb> "
+					f"{record['superevent_id']}-{record['alert_type']}, "
 					f"({most_probable_event} {most_probable_event_prob:.1%}"
 				)
+
 				if most_probable_event != 'Burst':
 					initial_comment += f", d={distmean:.1f}±{diststd:.1f} Mpc"
 				initial_comment += ")"
@@ -1566,6 +1571,20 @@ while True:
 
 		# print(eventlogtbl[-1])
 		eventlogtbl.write(f"{path_out}/event.log", format='ascii.fixed_width', overwrite=True)
+
+		# Cleanning
+		import gc
+
+		def cleanup_memory():
+			# 전역 변수들을 None으로 설정하여 메모리 해제
+			global skymap, cat, select_cat, simple_galcat, record, result
+			for var in [skymap, cat, select_cat, simple_galcat, record, result]:
+				if var is not None:
+					del var
+			gc.collect()  # 가비지 컬렉션 실행
+
+		cleanup_memory()		
+		#
 
 		print(f"DONE!")
 
