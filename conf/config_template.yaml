@@ -83,6 +83,7 @@ EVENT_PROCESSING:
   PROBABILITY_THRESHOLDS:
     NS: 0.5  # 중성자별 합체 확률 기준
     BURST: 0.5  # 버스트 신호 확률 기준
+    FARCUT: 0.5 # FarCut 신뢰도 기준
 
   # 거리 제한
   DISTANCE:

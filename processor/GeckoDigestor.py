@@ -141,6 +141,7 @@ client = WebClient(token=slack_token)
 event_config = config['EVENT_PROCESSING']
 DISTANCE_THRESHOLDS = event_config['DISTANCE']
 PROBABILITY_THRESHOLDS = event_config['PROBABILITY_THRESHOLDS']
+FARCUT = PROBABILITY_THRESHOLDS['FARCUT']
 
 print("Configurations loaded:")
 print(f"Path to galaxy catalog: {PATH_TO_GALAXY_CATALOG}")
@@ -443,32 +444,109 @@ def save_skygrid_catalog(sel, obs, record, probkey, confidence_limit, path_outpu
     sel.write(name, format='csv', overwrite=True)
 
 
+# def plot_tiling_map(sel, skymap, obs, record, path_output):
+# 	"""
+# 	Draw Healpix Mollweide map with tile edges overlaid.
+# 	"""
+# 	fig = plt.figure(figsize=(10, 4))
+# 	hp.mollview(
+# 		skymap,
+# 		title=f"{obs} Tiling for {record['superevent_id']}",
+# 		cbar=True, cmap=cmap, flip='astro',
+# 		# coord=['E'], 
+# 		unit=r'$P_{3D}$',
+# 	)
+# 	hp.graticule(dpar=30, dmer=30, coord='E', c='silver', alpha=0.75)
+
+# 	# overlay tile edges
+# 	ras_list, decs_list = DrawTiles(sel)
+# 	# for ras, decs in zip(ras_list, decs_list):
+# 	# 	hp.projplot(ras, decs, lonlat=True, c='g', lw=1, alpha=0.7)
+
+# 	for ii, (ras, decs) in enumerate(zip(ras_list, decs_list)):
+# 		if ii < 100: # Top 100
+# 			hp.projplot(ras, decs, lonlat=True, c='lime', lw=1, alpha=1.0, zorder=999)
+# 		else:
+# 			hp.projplot(ras, decs, lonlat=True, c='k', lw=1, alpha=0.75, zorder=998)
+
+
+# 	out = os.path.join(path_output, f"tiling_{obs}.png")
+# 	plt.tight_layout()
+# 	plt.savefig(out, dpi=100)
+# 	plt.close(fig)
+
 def plot_tiling_map(sel, skymap, obs, record, path_output):
 	"""
-	Draw Healpix Mollweide map with tile edges overlaid.
+	Draw Healpix Mollweide map with tile edges overlaid using projview.
 	"""
+
+
+	# projview 에 준 rot 값
+	rot_lon, rot_lat = 180, 0  
+
+	# 1) Figure 생성
 	fig = plt.figure(figsize=(10, 4))
-	hp.mollview(
+
+	# 2) projview로 맵 그리기
+	projview(
 		skymap,
+		coord=['E'],
+		graticule=True,
+		graticule_labels=True,
+		latitude_grid_spacing=30,
+		longitude_grid_spacing=30,
+		projection_type='mollweide',
 		title=f"{obs} Tiling for {record['superevent_id']}",
-		cbar=True, cmap=cmap, flip='astro',
-		# coord=['E'], 
+		cmap=cmap,
+		# cbar=True,
+		flip='astro',
 		unit=r'$P_{3D}$',
+		# rot=(rot_lon, rot_lat),
 	)
-	hp.graticule(dpar=30, dmer=30, coord='E', c='silver', alpha=0.75)
 
-	# overlay tile edges
+	# # 3) 타일 모서리 불러와서 newprojplot으로 오버레이
 	ras_list, decs_list = DrawTiles(sel)
-	# for ras, decs in zip(ras_list, decs_list):
-	# 	hp.projplot(ras, decs, lonlat=True, c='g', lw=1, alpha=0.7)
-
 	for ii, (ras, decs) in enumerate(zip(ras_list, decs_list)):
-		if ii < 100: # Top 100
-			hp.projplot(ras, decs, lonlat=True, c='lime', lw=1, alpha=1.0, zorder=999)
-		else:
-			hp.projplot(ras, decs, lonlat=True, c='k', lw=1, alpha=0.75, zorder=998)
+		color = 'lime' if ii < 100 else 'k'
+		alpha = 1.0 if ii < 100 else 0.75
+		zord  = 999    if ii < 100 else 998
+		newprojplot(
+			ras, decs,
+			lonlat=True,       # deg 단위 lon/lat
+			linestyle='-',     # 실선
+			linewidth=1,
+			color=color,
+			alpha=alpha,
+			zorder=zord
+		)
 
 
+	# 3) 타일 모서리 불러와서 newprojplot으로 오버레이
+	# ras_list, decs_list = DrawTiles(sel)
+	# for ii, (ras, decs) in enumerate(zip(ras_list, decs_list)):
+	# 	color = 'lime' if ii < 100 else 'k'
+	# 	alpha = 1.0   if ii < 100 else 0.75
+	# 	zord  = 999   if ii < 100 else 998
+
+	# 	# NumPy array 로 변환
+	# 	ras_arr  = np.array(ras)
+	# 	decs_arr = np.array(decs)
+
+	# 	# 회전 적용
+	# 	ras_rot  = (ras_arr + rot_lon) % 360
+	# 	decs_rot = decs_arr + rot_lat
+
+	# 	newprojplot(
+	# 		ras_rot, decs_rot,
+	# 		lonlat=True,
+	# 		linestyle='-',
+	# 		linewidth=1,
+	# 		color=color,
+	# 		alpha=alpha,
+	# 		zorder=zord
+	# 	)
+
+	# 4) 저장 및 종료
 	out = os.path.join(path_output, f"tiling_{obs}.png")
 	plt.tight_layout()
 	plt.savefig(out, dpi=100)
@@ -531,7 +609,7 @@ def plot_tiling_map_zoom(sel, skymap, obs, record, path_output,
 		title=f"{obs} Zoom @({ra_center:.1f},{dec_center:.1f})",
 		# cmap='CMRmap_r',
 		cmap=cmap,
-		cbar=True,
+		# cbar=True,
 		unit=r'$P_{3D}$',
 		flip='astro',
 	)
@@ -644,7 +722,6 @@ def clean_skygrid(skygrid_cat):
     n_removed = bad.sum()
     print(f"→ skygrid_cat 에서 {n_removed} 개의 결측 행 제거됨.")
     return clean_tbl
-# %%
 
 
 # %%
@@ -874,9 +951,6 @@ while True:
 			
 			print(f"Most probable event: {most_probable_event} ({most_probable_event_prob*1e2:.1f}%)")
 
-			# %% [markdown]
-			# - Check the existence of an `external_coinc`
-
 			# %%
 			if record['external_coinc'] != None:
 				if 'combined_skymap' in list(record['external_coinc'].keys()):
@@ -886,13 +960,11 @@ while True:
 			else:
 				print(f"No external_coinc")
 
-			# %% [markdown]
-			# ### Skymap Analysis
-
 			# %%
 			print(f"Initializing skymap RA and DEC...")
 			skymap['RA'] = 0.0
 			skymap['DEC'] = 0.0
+			skymap['nside'] = np.zeros(len(skymap), dtype=np.int64)
 
 			for i in np.arange(len(skymap)):
 				uniq = skymap[i]['UNIQ']
@@ -902,8 +974,8 @@ while True:
 
 				skymap['RA'][i] = ra.deg
 				skymap['DEC'][i] = dec.deg
+				skymap['nside'][i] = nside
 
-			# %% [markdown]
 			# - Area within confidence region
 			print(f"Calculate area within confidence region (50%, 90%)...")
 			skymap.sort('PROBDENSITY', reverse=True)
@@ -981,16 +1053,10 @@ while True:
 			print(f"Save KN light curve: {lcpng}")
 			plt.savefig(lcpng)
 			plt.close()
-			# %% [markdown]
-			# # 3. Catalog Matching
-
-			# %% [markdown]
-			# - Read GLADE+ catalog (.fits for the faster I/O)
-
-			# %% [markdown]
-			# ### Read & Matching
 
 			# %%
+			# - Read GLADE+ catalog (.fits for the faster I/O)
+
 			'''- 1	GLADE no	GLADE+ catalog number
 			- 2	PGC no	Principal Galaxies Catalogue number
 			- 3	GWGC name	Name in the GWGC catalog
@@ -1179,9 +1245,12 @@ while True:
 			print(f"{simple_galcat_region}")
 			create_ds9_regions(simple_galcat["ra"], simple_galcat["dec"], simple_galcat["name"], filename=simple_galcat_region)
 
-
+			# %%
 			# Prepare the healpix map (unchanged)
-			nside   = 2**7 # This fixed valude is only for the visualization
+			# nside   = 2**7 # This fixed valude is only for the visualization
+			# nside   = np.max(skymap['nside'])
+			nside   = int(64)
+			# nside   = skymap['nside']
 			npix    = hp.nside2npix(nside)
 			hp_map  = np.zeros(npix)
 			ra_rad  = np.radians(skymap['RA'])
@@ -1197,19 +1266,54 @@ while True:
 			lon_labels = [f"{int(l)}°" for l in np.arange(-150, 181, 30)]
 			lat_labels = [f"{int(l)}°" for l in np.arange(-90,   91,  30)]
 
+			hp_mollview_title = f"{record['superevent_id']}_{record['alert_type']}: {most_probable_event} ({most_probable_event_prob:.1%})\n50% area: {area_50.to(u.deg**2):.1f}\n90% area: {area_90.to(u.deg**2):.1f}\nd={distmean:.0f}+{diststd:.0f} Mpc"
+
 			# --- Figure 1: no rotation ---
 			print(f"Drawing no rotation skymap...")
-			fig1 = plt.figure(figsize=(10, 4))
+			fig1 = plt.figure(figsize=(10, 6))
 
-			hp.mollview(
-				hp_map,
-				# fig=fig1.number, sub=(1,1,1),
-				title=f"{record['superevent_id']}_{record['alert_type']} (no rot)",
-				cmap=cmap, cbar=True, flip='astro', unit=r'$\rm P_{3D}$'
+			# hp.mollview(
+			# 	hp_map,
+			# 	# fig=fig1.number, sub=(1,1,1),
+			# 	title=f"{record['superevent_id']}_{record['alert_type']} (no rot)",
+			# 	cmap=cmap, cbar=True, flip='astro', unit=r'$\rm P_{3D}$'
+			# )
+			projview(
+				hp_map, 
+				coord=["E"], 
+				#
+				graticule=True, 
+				graticule_labels=True, 
+				#
+				latitude_grid_spacing=30,
+				longitude_grid_spacing=45,
+				#
+				cmap=cmap, 
+				# cbar=True, 
+				cbar=False, 
+				title=hp_mollview_title,
+				projection_type="mollweide",
+				#
+				custom_xtick_labels=["21h", "18h", "15h", "12h", "9h", "6h", "3h",],
+				# custom_ytick_labels=[""],
+				#
+				flip='astro', 
+				unit=r'$\rm P_{3D}$',
+				rot=(180, 0),
+				# rot_graticule=True,
+
 			)
-			hp.graticule(dpar=30, dmer=30, coord='E', c='silver', alpha=0.75)
+			# hp.graticule(dpar=30, dmer=30, coord='E', c='k', alpha=0.75)
 
-			ax = plt.gca()
+			# 2) 사각형 네 꼭짓점 (deg 단위)
+			lon1, lon2 =  1,  2  # 예시 경도 (°)
+			lat1, lat2 = -1,  1  # 예시 위도 (°)
+
+			# 마지막에 첫 점을 다시 넣어 닫기
+			lons = [lon1, lon1, lon2, lon2, lon1]
+			lats = [lat1, lat2, lat2, lat1, lat1]
+
+			# ax = plt.gca()
 			# ax.set_xticks(lon_ticks)
 			# ax.set_xticklabels(lon_labels)
 			# ax.set_yticks(lat_ticks)
@@ -1218,7 +1322,7 @@ while True:
 			plt.tight_layout()
 			plt.savefig(f"{path_output}/skymap_no_rot.png", dpi=100)
 			plt.close(fig1)
-
+			# %%
 
 			# --- Figure 2: rotated 90° ---
 			print(f"Drawing rotated skymap...")
@@ -1227,22 +1331,25 @@ while True:
 			hp.mollview(
 				hp_map,
 				# fig=fig2.number, sub=(1,1,1),
-				title=f"{record['superevent_id']}_{record['alert_type']} (rot 90°)",
-				cmap=cmap, cbar=True, flip='astro', rot=(90, -45), unit=r'$\rm P_{3D}$'
+				# title=f"{record['superevent_id']}_{record['alert_type']} (rot 90°)",
+				cmap=cmap, cbar=True, flip='astro', unit=r'$\rm P_{3D}$',
+				title=hp_mollview_title,
+				rot=(180, -45), 
 			)
-			hp.graticule(dpar=30, dmer=30, coord='E', c='silver', alpha=0.75)
+			# projview(
+			# 	hp_map, coord=["E"], graticule=True, graticule_labels=True, projection_type="mollweide",
+			# 	title=f"{record['superevent_id']}_{record['alert_type']}: 50% (90%) area: {area_50.to(u.deg**2):.1f} ({area_90.to(u.deg**2):.1f})",
+			# 	cmap=cmap, cbar=True, flip='astro', unit=r'$\rm P_{3D}$',
+			# 	rot=(180, -45)
+			# )
+			hp.graticule(dpar=30, dmer=30, coord='E', c='k', alpha=0.75)
 
 			ax = plt.gca()
-			# ax.set_xticks(lon_ticks)
-			# ax.set_xticklabels(lon_labels)
-			# ax.set_yticks(lat_ticks)
-			# ax.set_yticklabels(lat_labels)
+
 
 			plt.tight_layout()
 			plt.savefig(f"{path_output}/skymap_rot90.png", dpi=100)
-			plt.close(fig2)
-
-			
+			plt.close(fig2)			
 
 			# %%
 			plt.close()
@@ -1275,8 +1382,7 @@ while True:
 			plt.savefig(f"{path_output}/cumulative_p3d_HostGalaxy.png", dpi=100,)
 			plt.close(fig)
 
-			# %% [markdown]
-			# # 4. sky grid matching
+			# %%
 			print(f"-"*60)
 			print("Setting Tiling Pattern")
 			print(f"-"*60)
