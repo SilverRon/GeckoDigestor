@@ -21,6 +21,19 @@ import json
 from pprint import pprint
 from matplotlib.colors import LinearSegmentedColormap
 
+# Import memory logger
+from memory_logger import MemoryLogger
+
+# Initialize memory logger
+memory_logger = MemoryLogger()
+
+# Function to log memory usage before and after operations
+def log_memory_usage(section_name):
+    print(f"\n=== Memory Usage in {section_name} ===")
+    memory_logger.print_memory_usage(section_name)
+    memory_logger.log_memory(section_name)
+    print("-" * 50)
+
 # import tempfile
 from astropy.table import Table
 import astropy_healpix as ah
@@ -349,6 +362,8 @@ def process_tiles(skygrid_cat, skymap, simple_galcat,
 	4) Fill missing probabilities, sort, rank, compute confidence levels.
 	Returns the processed Table.
 	"""
+	# Log memory usage before processing tiles
+	log_memory_usage("process_tiles_start")
 	# 1) Select tiles in 90% region
 	# idx = count_skymap_within_fov(skygrid_cat, skymap, confidence_limit)
 	# idx = count_skymap_within_fov_fast(skygrid_cat, skymap, confidence_limit, nside)
@@ -508,6 +523,8 @@ def plot_tiling_map(sel, skymap, obs, record, path_output):
 	"""
 	Draw Healpix Mollweide map with tile edges overlaid using projview.
 	"""
+	# Log memory usage before plotting
+	log_memory_usage("plot_tiling_map_start")
 
 
 	# projview 에 준 rot 값
@@ -586,6 +603,8 @@ def plot_cumulative_dist(sel, obs, probkey, path_output):
 	"""
 	Draw cumulative P3D plot for the selected tiles.
 	"""
+	# Log memory usage before plotting cumulative distribution
+	log_memory_usage("plot_cumulative_dist_start")
 	fig = plt.figure(figsize=(6,4))
 	cum = np.cumsum(sel[probkey]) / np.sum(sel[probkey])
 	plt.plot(cum, '-', mfc='w', mew=2, ms=6, c='k')
@@ -624,6 +643,8 @@ def plot_tiling_map_zoom(sel, skymap, obs, record, path_output,
 	- fov_deg      : field-of-view in degrees
 	- xsize        : width of the output image in pixels
 	"""
+	# Log memory usage before zoom plotting
+	log_memory_usage("plot_tiling_map_zoom_start")
 	# compute resolution: degrees per pixel
 	reso = fov_deg / xsize
 
@@ -688,6 +709,8 @@ def select_tiles_and_sum_prob(skygrid_cat, skymap_tbl, confidence_limit, nside_h
       sel_idx: 선택된 타일의 인덱스 리스트
       sum_probs: 그 타일별 누적 PROBDENSITY 값 리스트
     """
+    # Log memory usage before tile selection
+    log_memory_usage("select_tiles_and_sum_prob_start")
     # 1) UNIQ → (level, ipix_low)
     level, ipix_low = ah.uniq_to_level_ipix(skymap_tbl['UNIQ'])
     nside_low = ah.level_to_nside(level)
@@ -760,6 +783,9 @@ while True:
 	elapsed = datetime.timedelta(seconds=int(time.time() - start_time))
 	print(f"\rElapsed: [{elapsed.days:02d}:{elapsed.seconds//3600:02d}:"
 			f"{(elapsed.seconds//60)%60:02d}:{elapsed.seconds%60:02d}]", end='', flush=True)
+	
+	# Log memory usage at start of loop
+	log_memory_usage("start_of_loop")
 
 	# --- 1) 로그 갱신 ---
 	# print(f"Refreshing event log...")
