@@ -389,9 +389,13 @@ def process_tiles(skygrid_cat, skymap, simple_galcat,
 	theta_galaxy = np.radians(90 - simple_galcat['dec'].value)
 	phi_galaxy   = np.radians(simple_galcat['ra'].value)
 	galaxy_pix = hp.ang2pix(nside,
-						theta_galaxy,
-						phi_galaxy,
-						nest=False)
+					theta_galaxy,
+					phi_galaxy,
+					nest=False)
+
+	# Clean up temporary arrays
+	del theta_galaxy, phi_galaxy
+	gc.collect()
 
 	for i, row in enumerate(sel):
 		# 1) 꼭짓점→벡터
@@ -1491,7 +1495,9 @@ while True:
 					confidence_limit=confidence_limit,
 					nside_high=np.max(nside),
 				)
-
+				if len(idx) == 0:
+					print(f"No tiles selected for {obs} (dec_max={decmax:.3f} deg)")
+					continue
 				# 선택된 타일 테이블만 떼어내고
 				selected_tiles = skygrid_cat[idx]
 				# 그리고 컬럼으로 합산 PROBDENSITY를 붙여주면 끝

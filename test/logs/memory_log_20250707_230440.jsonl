@@ -1,0 +1,8 @@
+{"timestamp": "2025-07-07T23:04:42.972277", "section": "start_of_loop", "memory_usage": {"rss": 3280.859375, "vms": 6492.6796875, "shared": 100.46875, "rss_percent": 26.4}}
+{"timestamp": "2025-07-07T23:04:47.991248", "section": "start_of_loop", "memory_usage": {"rss": 3280.859375, "vms": 6492.6796875, "shared": 100.46875, "rss_percent": 26.4}}
+{"timestamp": "2025-07-07T23:04:53.010383", "section": "start_of_loop", "memory_usage": {"rss": 3281.11328125, "vms": 6492.6796875, "shared": 100.46875, "rss_percent": 26.4}}
+{"timestamp": "2025-07-07T23:04:58.029573", "section": "start_of_loop", "memory_usage": {"rss": 3281.37109375, "vms": 6492.6796875, "shared": 100.46875, "rss_percent": 26.4}}
+{"timestamp": "2025-07-07T23:05:03.049335", "section": "start_of_loop", "memory_usage": {"rss": 3281.37109375, "vms": 6492.6796875, "shared": 100.46875, "rss_percent": 26.4}}
+{"timestamp": "2025-07-07T23:05:08.068831", "section": "start_of_loop", "memory_usage": {"rss": 3281.62890625, "vms": 6493.6796875, "shared": 100.46875, "rss_percent": 26.4}}
+{"timestamp": "2025-07-07T23:05:13.088450", "section": "start_of_loop", "memory_usage": {"rss": 3281.62890625, "vms": 6493.6796875, "shared": 100.46875, "rss_percent": 26.4}}
+{"timestamp": "2025-07-07T23:05:18.107337", "section": "start_of_loop", "memory_usage": {"rss": 3281.62890625, "vms": 6493.6796875, "shared": 100.46875, "rss_percent": 26.4}}
