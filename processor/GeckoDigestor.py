@@ -808,7 +808,16 @@ while True:
 			new_events.append(e)
 
 	if new_events:
-		print(f"\nNew {len(new_events)} events found:", new_events)
+		print(f"\nNew {len(new_events)} events found:",)
+		for eee, _eventname in enumerate(new_events):
+			if (eee < 5):
+				print(f"[{eee:>3}]: {_eventname}")
+			elif (eee > len(new_events)-5):
+				print(f"[{eee:>3}]: {_eventname}")
+			elif (eee == 5):
+				print("...")
+			else:
+				print("", end="", flush=True)
 		if PROCESSING_REVERSE_ORDER:
 			new_events = new_events[::-1]
 			print("Processing in reverse order")
@@ -1465,7 +1474,9 @@ while True:
 					confidence_limit=confidence_limit,
 					nside_high=np.max(nside),
 				)
-
+				if len(idx) == 0:
+					print(f"No tiles selected for {obs} (dec_max={decmax:.3f} deg)")
+					continue
 				# 선택된 타일 테이블만 떼어내고
 				selected_tiles = skygrid_cat[idx]
 				# 그리고 컬럼으로 합산 PROBDENSITY를 붙여주면 끝
@@ -1645,6 +1656,6 @@ while True:
 
 		cleanup_memory()
 
-		print(f"DONE!")
+		print(f"= = = = = = = = = = DONE! = = = = = = = = = = =")
 
 		time.sleep(TIME_TO_SLEEP)

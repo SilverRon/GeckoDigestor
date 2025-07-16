@@ -832,13 +832,15 @@ while True:
 	
 	eventlogtbl = Table.read(f"{path_out}/event.log", format='ascii.fixed_width')
 	for e in eventlist:
-		indx_not_processed = eventlogtbl['processed'] == False
+		indx_not_processed = eventlogtbl['processed'] == 0
 		not_processed_events = eventlogtbl['output_dir'][indx_not_processed]
 		if e in not_processed_events:
 			new_events.append(e)
 
 	if new_events:
-		print(f"\nNew {len(new_events)} events found:", new_events)
+		print(f"\nNew {len(new_events)} events found:",)
+		for eee, _eventname in enumerate(new_events):
+			print(f"[{eee:>3}]: {_eventname}")
 		if PROCESSING_REVERSE_ORDER:
 			new_events = new_events[::-1]
 			print("Processing in reverse order")
