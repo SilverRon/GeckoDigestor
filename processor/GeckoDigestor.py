@@ -1014,7 +1014,7 @@ while True:
 			gecko_digestor_trigger = False
 			slack = False
 			print(f"Ignore Burst event --> gecko_digestor_trigger: {gecko_digestor_trigger}, slack: {slack}")
-		if MANUAL_MODEL:
+		if MANUAL_MODE:
 			gecko_digestor_trigger = True
 			slack = True
 			print(f"MANUAL MODE --> !Forced! gecko_digestor_trigger: {gecko_digestor_trigger}, slack: {slack}")
