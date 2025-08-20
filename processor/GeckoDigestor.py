@@ -1060,14 +1060,14 @@ while True:
 				elif most_probable_event in ['BBH']:
 					pass
 				elif most_probable_event in ['Terrestrial']:
-					gecko_digestor_trigger = False
-					slack = False
+					# gecko_digestor_trigger = False
+					# slack = False
 					pass
 			elif record['event']['group'] == 'Burst':
 				most_probable_event = 'Burst'
 				most_probable_event_prob = 1.0
 				gecko_digestor_trigger = True
-				slack = False 
+				# slack = False 
 			
 			print(f"Most probable event: {most_probable_event} ({most_probable_event_prob*1e2:.1f}%)")
 
