@@ -504,82 +504,68 @@ def save_skygrid_catalog(sel, obs, record, probkey, confidence_limit, path_outpu
 # 	plt.savefig(out, dpi=100)
 # 	plt.close(fig)
 
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from healpy.newvisufunc import projview, newprojplot
+
 def plot_tiling_map(sel, skymap, obs, record, path_output):
-	"""
-	Draw Healpix Mollweide map with tile edges overlaid using projview.
-	"""
+    """
+    Draw Healpix Mollweide map with tile edges overlaid using projview + newprojplot.
+    """
 
+    # projview에 넘긴 rot 값 (lon, lat)
+    rot_lon, rot_lat = 180, 0  
 
-	# projview 에 준 rot 값
-	rot_lon, rot_lat = 180, 0  
+    # 1) Figure 생성
+    fig = plt.figure(figsize=(10, 4))
 
-	# 1) Figure 생성
-	fig = plt.figure(figsize=(10, 4))
+    # 2) projview로 맵 그리기 (회전 포함)
+    projview(
+        skymap,
+        coord=['E'],
+        graticule=True,
+        graticule_labels=True,
+        latitude_grid_spacing=30,
+        longitude_grid_spacing=30,
+        projection_type='mollweide',
+        title=f"{obs} Tiling for {record['superevent_id']}",
+        cmap=cmap,
+        flip='astro',
+        unit=r'$P_{3D}$',
+        rot=(rot_lon, rot_lat),
+    )
 
-	# 2) projview로 맵 그리기
-	projview(
-		skymap,
-		coord=['E'],
-		graticule=True,
-		graticule_labels=True,
-		latitude_grid_spacing=30,
-		longitude_grid_spacing=30,
-		projection_type='mollweide',
-		title=f"{obs} Tiling for {record['superevent_id']}",
-		cmap=cmap,
-		# cbar=True,
-		flip='astro',
-		unit=r'$P_{3D}$',
-		# rot=(rot_lon, rot_lat),
-	)
+    # 3) 타일 모서리 불러와서 newprojplot으로 오버레이
+    ras_list, decs_list = DrawTiles(sel)
+    for ii, (ras, decs) in enumerate(zip(ras_list, decs_list)):
+        color = 'lime' if ii < 100 else 'k'
+        alpha = 1.0 if ii < 100 else 0.75
+        zord  = 999 if ii < 100 else 998
 
-	# # 3) 타일 모서리 불러와서 newprojplot으로 오버레이
-	ras_list, decs_list = DrawTiles(sel)
-	for ii, (ras, decs) in enumerate(zip(ras_list, decs_list)):
-		color = 'lime' if ii < 100 else 'k'
-		alpha = 1.0 if ii < 100 else 0.75
-		zord  = 999    if ii < 100 else 998
-		newprojplot(
-			ras, decs,
-			lonlat=True,       # deg 단위 lon/lat
-			linestyle='-',     # 실선
-			linewidth=1,
-			color=color,
-			alpha=alpha,
-			zorder=zord
-		)
+        # 회전 적용 (deg 단위)
+        ras_rot  = (np.array(ras) + rot_lon) % 360
+        decs_rot = np.array(decs) + rot_lat
 
+        # healpy newprojplot용으로 (co-latitude, longitude) → 라디안으로 변환
+        theta = np.radians(90.0 - decs_rot)   # co-latitude
+        phi   = np.radians(ras_rot)           # longitude
 
-	# 3) 타일 모서리 불러와서 newprojplot으로 오버레이
-	# ras_list, decs_list = DrawTiles(sel)
-	# for ii, (ras, decs) in enumerate(zip(ras_list, decs_list)):
-	# 	color = 'lime' if ii < 100 else 'k'
-	# 	alpha = 1.0   if ii < 100 else 0.75
-	# 	zord  = 999   if ii < 100 else 998
+        newprojplot(
+            theta, phi,
+            linestyle='-',
+            linewidth=1,
+            color=color,
+            alpha=alpha,
+            zorder=zord
+        )
 
-	# 	# NumPy array 로 변환
-	# 	ras_arr  = np.array(ras)
-	# 	decs_arr = np.array(decs)
+    # 4) 저장 및 종료
+    out = os.path.join(path_output, f"tiling_{obs}.png")
+    plt.tight_layout()
+    plt.savefig(out, dpi=100)
+    plt.close(fig)
 
-	# 	# 회전 적용
-	# 	ras_rot  = (ras_arr + rot_lon) % 360
-	# 	decs_rot = decs_arr + rot_lat
-
-	# 	newprojplot(
-	# 		ras_rot, decs_rot,
-	# 		lonlat=True,
-	# 		linestyle='-',
-	# 		linewidth=1,
-	# 		color=color,
-	# 		alpha=alpha,
-	# 		zorder=zord
-	# 	)
-
-	# 4) 저장 및 종료
-	out = os.path.join(path_output, f"tiling_{obs}.png")
-	plt.tight_layout()
-	plt.savefig(out, dpi=100)
-	plt.close(fig)
 
 
 def plot_cumulative_dist(sel, obs, probkey, path_output):
@@ -638,6 +624,7 @@ def plot_tiling_map_zoom(sel, skymap, obs, record, path_output,
 		title=f"{obs} Zoom @({ra_center:.1f},{dec_center:.1f})",
 		# cmap='CMRmap_r',
 		cmap=cmap,
+		# cmap='viridis',
 		# cbar=True,
 		unit=r'$P_{3D}$',
 		flip='astro',
@@ -752,6 +739,64 @@ def clean_skygrid(skygrid_cat):
     print(f"→ skygrid_cat 에서 {n_removed} 개의 결측 행 제거됨.")
     return clean_tbl
 
+# %%
+
+# def select_tiles_and_sum_prob(skygrid_cat, skymap_tbl, confidence_limit,
+#                               nside_high, debug=False):
+#     # 1) UNIQ → (level, ipix_low)
+#     level, ipix_low = ah.uniq_to_level_ipix(skymap_tbl['UNIQ'])
+#     # 2) low-res NSIDE (여러 레벨 중 최대값 사용)
+#     nsides_low = ah.level_to_nside(level)
+#     nside_low  = int(np.max(nsides_low))
+
+#     # 3) low-res map 배열 생성
+#     prob_density = skymap_tbl['PROBDENSITY']
+#     m_low = np.zeros(hp.nside2npix(nside_low), dtype=float)
+#     m_low[ipix_low] = prob_density
+
+#     # 4) high-res로 업그레이드
+#     m_high = hp.ud_grade(
+#         m_low,
+#         nside_out=nside_high,
+#         order_in="NESTED",
+#         order_out="NESTED"
+#     )
+#     m_high /= m_high.sum()  # 정규화(옵션)
+
+#     # 5) 90% credible region 픽셀
+#     idx_desc = np.argsort(m_high)[::-1]
+#     cumsum   = np.cumsum(m_high[idx_desc])
+#     ipix90_high = set(idx_desc[cumsum <= confidence_limit])
+#     if debug:
+#         print(f"[Debug] #90% pixels = {len(ipix90_high)}")
+#         m90 = np.zeros_like(m_high); m90[list(ipix90_high)] = 1
+#         hp.mollview(m90, title="90% region"); plt.show()
+
+#     sel_idx   = []
+#     sum_probs = []
+
+#     # 6) 타일별 검사 & 합산
+#     for i, row in enumerate(skygrid_cat):
+#         # 모서리 → vecs
+#         lons = np.radians([row[f'ra{j}']  for j in (1,2,3,4)])
+#         lats = np.radians([row[f'dec{j}'] for j in (1,2,3,4)])
+#         vecs = hp.ang2vec(0.5*np.pi - lats, lons)
+
+#         # tile 내부 픽셀
+#         pix_tile = hp.query_polygon(nside_high, vecs,
+#                                     inclusive=True, nest=True)
+
+#         # 겹침 확인
+#         if ipix90_high & set(pix_tile):
+#             sel_idx.append(i)
+#             # ◀️ 여기서 바로 m_high 에서 합산
+#             sum_probs.append(m_high[pix_tile].sum())
+
+#             if debug:
+#                 print(f" Tile {i}: {len(pix_tile)} pix, prob sum = {sum_probs[-1]:.3e}")
+
+#     return np.array(sel_idx, dtype=int), np.array(sum_probs, dtype=float)
+
 
 # %%
 start_time = time.time()
@@ -826,16 +871,21 @@ while True:
 		# TODO: new_events 처리 로직 호출
 		# 예) for ev in new_events: handle_event(ev)
 
-	# sleep or other logic
-	time.sleep(TIME_TO_SLEEP)
+	if MANUAL_MODE:
+		print(f"MANUAL MODE WAS ACTIVATED")
+		event = input("> Enter event name: ")
+	else:
+		# sleep or other logic
+		time.sleep(TIME_TO_SLEEP)
 
-	if len(new_events):
-	# for ee, event in enumerate(new_events):
-		if MANUAL_MODE:
-			print(f"MANUAL MODE WAS ACTIVATED")
-			event = input("> Enter event name: ")
-		else:
+	if len(new_events) | (MANUAL_MODE):
+		# for ee, event in enumerate(new_events):
+		if len(new_events) > 0:
 			event = new_events[0]
+		elif MANUAL_MODE:
+			pass
+		else:
+			continue
 		st = time.time()
 		print(f"{event} DETECTED")
  
@@ -964,6 +1014,10 @@ while True:
 			gecko_digestor_trigger = False
 			slack = False
 			print(f"Ignore Burst event --> gecko_digestor_trigger: {gecko_digestor_trigger}, slack: {slack}")
+		if MANUAL_MODEL:
+			gecko_digestor_trigger = True
+			slack = True
+			print(f"MANUAL MODE --> !Forced! gecko_digestor_trigger: {gecko_digestor_trigger}, slack: {slack}")
 
 		# %%
 		if gecko_digestor_trigger:
@@ -1457,6 +1511,7 @@ while True:
 			probkey = "sum_p3d"
 			n_top = 300 # number of tiles
 			nside   = ah.level_to_nside(level)
+			nside_high = np.max(nside)
 
 			tile_number_dict = {}
 			for obs in telescopes4tile:
@@ -1472,7 +1527,7 @@ while True:
 					skygrid_cat,
 					skymap,
 					confidence_limit=confidence_limit,
-					nside_high=np.max(nside),
+					nside_high=nside_high,
 				)
 				if len(idx) == 0:
 					print(f"No tiles selected for {obs} (dec_max={decmax:.3f} deg)")
@@ -1628,7 +1683,13 @@ while True:
 		#	Update the event log
 		print(f"Updating the event log...")
 		indx_match = eventlogtbl['output_dir'] == os.path.basename(path_output)
-		eventlogtbl['processed'][indx_match] = True
+
+		if len(indx_match) == 0:
+			eventlogtbl.add_row(
+				[record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], path_output, True]
+			)
+		else:
+			eventlogtbl['processed'][indx_match] = True
 
 		# eventlogtbl.add_row(
 		# 	[record['superevent_id'], record['alert_type'], most_probable_event, record['ramax'], record['decmax'], record['area_90'], record['distmean'], record['diststd'], path_output, True]
@@ -1659,3 +1720,5 @@ while True:
 		print(f"= = = = = = = = = = DONE! = = = = = = = = = = =")
 
 		time.sleep(TIME_TO_SLEEP)
+
+# %%
